@@ -1384,18 +1384,7 @@
             ctx.fillStyle = "#34C759";
             ctx.font = "bold 36px Arial";
             ctx.fillText("Contact: +91 9028983659", width/2, y);
-            
-            // QR Code placeholder (you can add actual QR generation if needed)
-            const qrSize = 100;
-            const qrX = width - 60 - qrSize;
-            const qrY = height - 180;
-            ctx.fillStyle = "#000000";
-            ctx.fillRect(qrX, qrY, qrSize, qrSize);
-            ctx.fillStyle = "#FFFFFF";
-            ctx.font = "14px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText("Scan for", qrX + qrSize/2, qrY + qrSize + 20);
-            ctx.fillText("Payment/Details", qrX + qrSize/2, qrY + qrSize + 40);
+;
             
             // Download the bill
             canvas.toBlob(blob => {
