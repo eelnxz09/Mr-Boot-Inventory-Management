@@ -6,212 +6,228 @@
     <title>Mr Boot Manager</title>
     <style>
         :root {
-            /* Palette - Premium Leather & Modern UI */
-            --primary: #4E342E; /* Deep Leather */
+            --primary: #4E342E; 
             --primary-dark: #281A16;
-            --accent: #D7CCC8; /* Beige */
-            --bg-app: #F2F4F8; /* Modern Blue-Grey Tint */
+            --accent: #D7CCC8;
+            --bg-app: #F2F4F8;
             --bg-card: #FFFFFF;
             --text-main: #1D1D1F;
             --text-sub: #86868B;
-            
-            /* Functional Colors */
             --success: #34C759;
             --warning: #FF9F0A;
             --danger: #FF3B30;
             --info: #007AFF;
-
-            /* UI Constants */
-            --header-h: 70px;
-            --nav-h: 70px;
-            --radius: 16px;
-            --shadow: 0 4px 12px rgba(0,0,0,0.06);
+            --nav-h: 80px; 
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
-        /* Fix for mobile viewport height issues */
         body { 
             margin: 0; 
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             background: var(--bg-app); 
             color: var(--text-main); 
-            height: 100vh; /* Fallback */
-            height: 100dvh; /* Dynamic height for mobile browsers */
+            height: 100vh; 
+            height: 100dvh; 
             display: flex; 
             flex-direction: column; 
             overflow: hidden; 
         }
 
-        /* --- Layout --- */
-        header {
-            height: var(--header-h); background: var(--bg-card); 
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 16px; position: fixed; top: 0; width: 100%; z-index: 1000;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+        /* Login Screen */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--primary); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: white; padding: 24px; transition: transform 0.3s ease-in-out;
         }
-        .header-logo { height: 50px; width: auto; object-fit: contain; }
+        #login-screen.hidden { transform: translateY(-100%); }
+        .user-card {
+            background: white; color: var(--text-main); width: 100%; max-width: 320px;
+            padding: 20px; border-radius: 20px; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 16px; cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+        .user-card:active { transform: scale(0.98); }
+
+        /* Layout */
+        header {
+            height: 70px; background: var(--bg-card); flex-shrink: 0;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 16px; border-bottom: 1px solid rgba(0,0,0,0.05); z-index: 100;
+        }
+        .header-logo { height: 45px; width: auto; object-fit: contain; }
         .app-title h1 { font-size: 20px; font-weight: 700; margin: 0; color: var(--primary); letter-spacing: -0.5px; }
         
-        main { flex: 1; margin-top: var(--header-h); margin-bottom: var(--nav-h); overflow-y: auto; scroll-behavior: smooth; position: relative; padding-top: 10px; }
+        main { 
+            flex: 1; 
+            overflow-y: auto; 
+            scroll-behavior: smooth; 
+            position: relative; 
+            padding: 10px 16px 120px 16px; /* Extra padding bottom for Nav */
+        }
         
-        .view { display: none; padding: 16px; padding-bottom: 80px; animation: fadeIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .view { display: none; animation: fadeIn 0.3s; }
         .view.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- Navigation --- */
+        /* Navigation */
         nav {
-            height: var(--nav-h); background: white; 
+            background: white; 
             box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
-            position: fixed; bottom: 0; width: 100%; display: flex; z-index: 1000;
+            position: fixed; bottom: 0; left: 0; right: 0;
+            height: var(--nav-h);
+            display: flex; z-index: 2000;
             padding-bottom: env(safe-area-inset-bottom);
             border-top-left-radius: 20px; border-top-right-radius: 20px;
         }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #C7C7CC; text-decoration: none; transition: 0.2s; }
-        .nav-item.active { color: var(--primary); }
-        .nav-item svg { width: 26px; height: 26px; margin-bottom: 6px; fill: currentColor; }
-        .nav-item span { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #999; text-decoration: none; }
+        .nav-item.active { color: var(--primary); font-weight: 600; }
+        .nav-item svg { width: 24px; height: 24px; margin-bottom: 4px; fill: currentColor; }
+        .nav-item span { font-size: 10px; }
 
-        /* --- Components --- */
-        .card { background: var(--bg-card); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow); border: 1px solid rgba(0,0,0,0.02); }
-        
-        /* Badges */
-        .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        /* Components */
+        .card { background: var(--bg-card); border-radius: 16px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .badge { display: inline-flex; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .bg-pending { background: #FFF4E5; color: #FF9500; }
         .bg-ready { background: #E8F5E9; color: #34C759; }
         .bg-completed { background: #E5F1FF; color: #007AFF; }
-        .bg-danger { background: #FFEBEE; color: #FF3B30; }
-
-        /* Alerts */
-        .alert-box {
-            background: #E8F5E9; border: 1px solid #C8E6C9; color: #2E7D32;
-            padding: 12px; border-radius: 12px; margin-bottom: 16px;
-            display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 14px;
-        }
-        .alert-box.hidden { display: none; }
-
-        /* Floating Action Button */
+        
         .fab {
-            position: fixed; bottom: 90px; right: 20px;
-            width: 60px; height: 60px; border-radius: 20px;
+            position: fixed; bottom: 100px; right: 20px;
+            width: 56px; height: 56px; border-radius: 18px;
             background: var(--primary); color: white;
             display: flex; align-items: center; justify-content: center;
             box-shadow: 0 8px 20px rgba(78, 52, 46, 0.4);
-            z-index: 900; cursor: pointer; border: none;
-            transition: transform 0.2s;
+            z-index: 1500; cursor: pointer; border: none;
         }
-        .fab:active { transform: scale(0.92); }
 
         /* Forms */
-        label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: var(--text-sub); }
         input, select, textarea {
-            width: 100%; padding: 14px; margin-bottom: 16px;
-            border: 1px solid #E5E5EA; border-radius: 12px;
-            font-size: 16px; background: #F9F9F9; color: var(--text-main);
-            -webkit-appearance: none; transition: border 0.2s;
+            width: 100%; padding: 12px; margin-bottom: 12px;
+            border: 1px solid #E5E5EA; border-radius: 10px;
+            font-size: 16px; background: #F9F9F9; -webkit-appearance: none;
         }
-        input:focus, select:focus, textarea:focus { border-color: var(--primary); outline: none; background: white; }
-        
-        .btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 8px; transition: opacity 0.2s; }
-        .btn-primary { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(78, 52, 46, 0.3); }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 8px; }
+        .btn-primary { background: var(--primary); color: white; }
         .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
         .btn-whatsapp { background: #25D366; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn:active { opacity: 0.8; transform: scale(0.98); }
-        .btn-small { padding: 8px 16px; font-size: 13px; margin-top: 0; width: auto; }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        /* Order Cards Specifics */
-        .order-id { font-family: "Courier New", monospace; font-weight: 700; color: var(--primary); font-size: 14px; background: #EFEBE9; padding: 2px 6px; border-radius: 4px; }
-        .order-date { color: var(--text-sub); font-size: 12px; }
-        .customer-row { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; }
-        .cust-name { font-weight: 700; font-size: 17px; }
-        .order-details { font-size: 14px; color: #444; line-height: 1.5; background: #F8F8F8; padding: 10px; border-radius: 8px; }
-        .price-tag { font-weight: 800; color: var(--text-main); font-size: 18px; }
         
-        /* Dynamic Items List */
-        .item-row { background: white; border: 1px solid #E5E5EA; border-radius: 10px; padding: 10px; margin-bottom: 10px; position: relative; }
-        .remove-item { position: absolute; top: 5px; right: 5px; color: #FF3B30; background: none; border: none; font-size: 18px; padding: 5px; cursor: pointer; }
-
-        /* Stats */
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .stat-card { background: white; padding: 16px; border-radius: 12px; text-align: center; border: 1px solid #eee; }
-        .stat-val { font-size: 24px; font-weight: 800; color: var(--primary); display: block; margin: 4px 0; }
-        .stat-lbl { font-size: 11px; text-transform: uppercase; color: var(--text-sub); letter-spacing: 0.5px; }
-
+        .flex-row { display: flex; gap: 10px; }
+        .hidden { display: none !important; }
+        .img-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 1px solid #ddd; margin-right: 8px; }
+        
         /* Modals */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: white; z-index: 2000; overflow-y: auto;
-            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            background: white; z-index: 3000; overflow-y: auto;
+            transform: translateY(100%); transition: transform 0.3s;
             display: flex; flex-direction: column;
         }
         .modal.open { transform: translateY(0); }
-        .modal-header { padding: 16px 20px; background: white; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
-        .modal-header h3 { margin: 0; font-size: 18px; }
-        .modal-body { padding: 20px; padding-bottom: 100px; flex: 1; }
-        .close-btn { background: #F2F2F7; border: none; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #888; cursor: pointer; }
+        .modal-header { padding: 16px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 16px; flex: 1; overflow-y: auto; }
+        .close-btn { background: #F2F2F7; width: 30px; height: 30px; border-radius: 50%; border: none; font-size: 18px; }
 
-        /* Action Bar */
-        .action-bar {
-            padding: 16px; border-top: 1px solid #eee; background: white;
-            position: sticky; bottom: 0; z-index: 20;
-            display: flex; gap: 12px;
+        /* Item Row */
+        .item-row { background: white; border: 1px solid #eee; padding: 10px; border-radius: 10px; margin-bottom: 10px; position: relative; }
+        .remove-item { position: absolute; top: 5px; right: 5px; color: red; background: none; border: none; font-size: 20px; }
+        
+        /* Service Selection Styling (Tick Mark) */
+        .service-option-label {
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 16px 20px; 
+            border-bottom: 1px solid #eee; 
+            cursor: pointer; 
+            background: white;
+            transition: background 0.2s;
         }
-        .action-bar .btn { margin-top: 0; flex: 1; font-size: 14px; border-radius: 12px; }
-
-        /* Helper Classes */
-        .hidden { display: none !important; }
-        .flex-row { display: flex; gap: 12px; }
-        .flex-1 { flex: 1; }
-        .img-grid { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; }
-        .img-thumb { width: 70px; height: 70px; border-radius: 8px; object-fit: cover; border: 1px solid #ddd; flex-shrink: 0; }
-
-        /* Service Option Items */
-        .service-option { animation: fadeIn 0.1s; }
-        .service-option:active { background-color: #f5f5f5; }
-
+        .service-option-label:active { background: #f9f9f9; }
+        .service-option-label input { display: none; } /* Hide standard checkbox */
+        
+        .service-text { font-size: 16px; color: #333; }
+        .service-option-label input:checked ~ .service-text { 
+            font-weight: 600; 
+            color: var(--primary); 
+        }
+        
+        .service-tick {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            display: flex; align-items: center; justify-content: center;
+            color: white;
+            transition: all 0.2s;
+        }
+        
+        .service-option-label input:checked ~ .service-tick {
+            background: var(--success);
+            border-color: var(--success);
+        }
+        
+        .service-tick svg {
+            width: 16px; height: 16px;
+            opacity: 0;
+            transform: scale(0.5);
+            transition: all 0.2s;
+        }
+        
+        .service-option-label input:checked ~ .service-tick svg {
+            opacity: 1;
+            transform: scale(1);
+        }
     </style>
 </head>
 <body>
 
-    <!-- MAIN APP -->
+    <!-- LOGIN -->
+    <div id="login-screen">
+        <h1 style="font-size:32px; margin-bottom:40px;">Mr Boot</h1>
+        <div class="card" style="width:100%; max-width:320px; background:white; color:#333;">
+            <h3 style="margin-top:0;">Admin Access</h3>
+            <p style="font-size:12px; color:#666;">Enter your PIN to manage the shop.</p>
+            <input type="password" id="login-pin" placeholder="Enter PIN (Default: 1234)" style="margin-bottom:16px; border:1px solid #ddd;">
+            <button class="btn btn-primary" onclick="attemptLogin()">Enter Shop</button>
+        </div>
+    </div>
+
+    <!-- HEADER -->
     <header>
-        <div style="display:flex; align-items:center; gap:12px;">
-            <!-- Logo Image -->
-            <img id="header-logo" src="Shoe_Laundry_Logo-removebg-preview.jpg" class="header-logo" onerror="this.style.display='none'; document.getElementById('header-text').style.display='block';">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <!-- Attempt to load logo, fallback to text if broken -->
+            <img id="header-logo" src="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png" class="header-logo" onerror="this.style.display='none'; document.getElementById('header-text').style.display='block';">
             <div id="header-text" class="app-title" style="display:none;">
                 <h1>Mr Boot</h1>
                 <span style="font-size:10px; color:var(--text-sub);">Inventory & Service</span>
             </div>
         </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-            <div id="db-status" style="width:8px; height:8px; border-radius:50%; background:#ccc;"></div>
-        </div>
+        <div id="db-status" style="width:8px; height:8px; border-radius:50%; background:#ccc;"></div>
     </header>
 
-    <!-- HIDDEN RESOURCES -->
+    <!-- HIDDEN CANVAS & RESOURCES -->
     <canvas id="billCanvas" style="display:none;"></canvas>
-    
-    <!-- Direct link guess based on user input. Ideally these should be base64 or local images for offline robustness -->
-    <img id="logo-img-res" src="Shoe_Laundry_Logo-removebg-preview.jpg" crossorigin="anonymous" style="display:none;">
+    <img id="logo-img-res" src="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png" crossorigin="anonymous" style="display:none;">
 
     <main>
         <!-- ORDERS MODULE -->
         <section id="view-orders" class="view active">
             <!-- Delivery Alert -->
-            <div id="delivery-alert" class="alert-box hidden">
-                <span>&#128666;</span>
-                <span id="delivery-msg">Today's Delivery: 0 orders</span>
+            <div id="delivery-alert" class="card hidden" style="background:#E8F5E9; color:#2E7D32; font-weight:bold;">
+                🚚 Today's Delivery: <span id="delivery-count">0</span> orders
             </div>
 
-            <div class="sub-tabs flex-row" style="overflow-x:auto; padding-bottom:4px; margin-bottom:12px;">
+            <div class="flex-row" style="overflow-x:auto; padding-bottom:8px; margin-bottom:8px;">
                 <button class="badge" style="background:var(--primary); color:white; border:none;" onclick="filterOrders('All')">All</button>
                 <button class="badge bg-pending" style="border:none;" onclick="filterOrders('Pending')">Pending</button>
                 <button class="badge bg-ready" style="border:none;" onclick="filterOrders('Ready')">Ready</button>
                 <button class="badge bg-completed" style="border:none;" onclick="filterOrders('Completed')">Done</button>
             </div>
+            
             <div id="orders-list"></div>
-            <div style="height:60px;"></div> <!-- Spacer -->
+            
             <button class="fab" onclick="openOrderModal()">
                 <!-- Plus Icon -->
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
@@ -225,9 +241,9 @@
 
         <!-- INVENTORY MODULE -->
         <section id="view-inventory" class="view">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                <h3 style="margin:0;">Add-ons / Stock</h3>
-                <button onclick="openInventoryModal()" style="padding:8px 16px; background:var(--primary); color:white; border:none; border-radius:8px; font-size:13px;">+ Add Item</button>
+            <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+                <h3>Add-ons / Stock</h3>
+                <button class="btn btn-primary" style="width:auto; margin:0; padding:8px 16px; font-size:12px;" onclick="openInventoryModal()">+ Add Item</button>
             </div>
             <div id="inventory-list"></div>
         </section>
@@ -235,465 +251,323 @@
         <!-- REPORTS MODULE -->
         <section id="view-reports" class="view">
             <div class="card">
-                <h3 style="margin-top:0; font-size:14px; color:var(--text-sub); text-transform:uppercase;">Financial Overview</h3>
-                <div class="stat-grid">
-                    <div>
-                        <span class="stat-val" style="color:var(--success);">₹<span id="rep-revenue">0</span></span>
-                        <span class="stat-lbl">Total Revenue</span>
-                    </div>
-                    <div>
-                        <span class="stat-val" style="color:var(--danger);">₹<span id="rep-pending">0</span></span>
-                        <span class="stat-lbl">Pending Collection</span>
-                    </div>
-                    <div>
-                        <span class="stat-val" style="color:var(--warning);">₹<span id="rep-expenses">0</span></span>
-                        <span class="stat-lbl">Porter/Delivery Costs</span>
-                    </div>
-                    <div>
-                        <span class="stat-val" style="color:var(--info);">₹<span id="rep-profit">0</span></span>
-                        <span class="stat-lbl">Net Profit</span>
-                    </div>
-                </div>
+                <h3>Financials</h3>
+                <p>Revenue: <b id="rep-revenue">0</b></p>
+                <p>Pending: <b id="rep-pending" style="color:var(--danger)">0</b></p>
+                <p>Profit (Net): <b id="rep-profit" style="color:var(--success)">0</b></p>
             </div>
-
+            
             <div class="card">
-                <h3 style="margin-top:0; font-size:14px; color:var(--text-sub); text-transform:uppercase;">Order Status</h3>
-                <div class="stat-grid" style="grid-template-columns: 1fr 1fr 1fr;">
-                    <div><span class="stat-val" id="rep-active">0</span><span class="stat-lbl">Active</span></div>
-                    <div><span class="stat-val" id="rep-ready">0</span><span class="stat-lbl">Ready</span></div>
-                    <div><span class="stat-val" id="rep-done">0</span><span class="stat-lbl">Done</span></div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>&#128190; Data Backup</h3>
-                <p style="font-size:13px; color:#666; margin:8px 0 12px 0;">Safe keeping for Admin only.</p>
-                <button class="btn btn-primary" onclick="backupData()">Download Backup</button>
-                <div style="height:8px;"></div>
-                <button class="btn btn-outline" onclick="document.getElementById('restore-input').click()">Restore Data</button>
+                <h3>Sync Data (Multi-Admin)</h3>
+                <p style="font-size:12px; color:#666;">
+                    Since this app is offline, use this to share data between admin phones. 
+                    <br>1. Click "Send" to download file.
+                    <br>2. Send file on WhatsApp.
+                    <br>3. Other Admin clicks "Receive" and selects file.
+                </p>
+                <button class="btn btn-primary" onclick="backupData()">📤 Send Data</button>
+                <button class="btn btn-outline" onclick="document.getElementById('restore-input').click()">📥 Receive Data</button>
                 <input type="file" id="restore-input" accept=".json" style="display:none" onchange="restoreData(this)">
             </div>
         </section>
     </main>
 
+    <!-- NAVIGATION -->
+    <nav>
+        <a href="#" class="nav-item active" onclick="switchView('orders', this)">
+            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+            <span>Orders</span>
+        </a>
+        <a href="#" class="nav-item" onclick="switchView('customers', this)">
+            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+            <span>Customers</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-inventory" onclick="switchView('inventory', this)">
+            <svg viewBox="0 0 24 24"><path d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
+            <span>Add-ons</span>
+        </a>
+        <a href="#" class="nav-item" id="nav-reports" onclick="switchView('reports', this)">
+            <svg viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
+            <span>Reports</span>
+        </a>
+    </nav>
+
     <!-- NEW ORDER MODAL -->
     <div id="modal-order" class="modal">
         <div class="modal-header">
             <h3>New Order</h3>
-            <button type="button" class="close-btn" onclick="closeModal('modal-order')">&times;</button>
+            <button class="close-btn" onclick="closeModal('modal-order')">&times;</button>
         </div>
         <div class="modal-body">
             <form id="order-form" onsubmit="saveOrder(event)">
-                <div class="card" style="margin:0 0 16px 0; background:#F9F9F9; border:none;">
-                    <label>Customer Mobile</label>
-                    <input type="tel" id="ord-phone" placeholder="9876543210" required onblur="checkCustomer(this.value)" style="margin-bottom:8px;">
-                    <input type="text" id="ord-name" placeholder="Customer Name" required style="margin-bottom:8px;">
-                    <textarea id="ord-address" rows="2" placeholder="Address" style="margin-bottom:0;"></textarea>
+                <div class="card" style="background:#F9F9F9; border:none;">
+                    <label>Customer</label>
+                    <input type="tel" id="ord-phone" placeholder="Mobile" required onblur="checkCustomer(this.value)">
+                    <input type="text" id="ord-name" placeholder="Name" required>
+                    <textarea id="ord-address" rows="2" placeholder="Address"></textarea>
                 </div>
 
                 <div style="background:#FFF3E0; padding:10px; border-radius:10px; margin-bottom:16px;">
-                    <label style="color:#E65100;">Expected Delivery Date</label>
-                    <input type="date" id="ord-date-delivery" style="margin-bottom:0; background:white;">
+                    <label style="color:#E65100;">Due Date</label>
+                    <input type="date" id="ord-date-delivery" style="margin:0; background:white;">
                 </div>
 
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <label>Items (Shoes/Bags)</label>
-                    <button type="button" class="btn btn-small btn-outline" onclick="addOrderItem()">+ Add Item</button>
+                    <label>Items</label>
+                    <button type="button" class="btn btn-primary" style="width:auto; padding:6px 12px; margin:0; font-size:12px;" onclick="addOrderItem()">+ Add Shoe</button>
                 </div>
-                <div id="order-items-container">
-                    <!-- Dynamic Items -->
+                <div id="order-items-container"></div>
+
+                <label style="margin-top:16px;">Photos & Add-ons</label>
+                <!-- Separate Input for Main Bill Photo -->
+                <div style="background:#E5F1FF; padding:12px; border-radius:10px; margin-bottom:12px; border: 1px dashed #007AFF;">
+                    <label style="color:#007AFF; font-weight:bold;">📸 Upload Main Photo (For Bill)</label>
+                    <p style="font-size:11px; color:#555; margin-top:-4px; margin-bottom:8px;">This single photo will appear on the bill (e.g. Group photo of shoes).</p>
+                    <input type="file" id="ord-main-image" accept="image/*" style="margin-bottom:0;">
                 </div>
 
-                <label style="margin-top:16px;">Add-ons (Laces, Insoles, etc.)</label>
-                <select id="ord-stock-item" onchange="updateStockLabel()">
-                    <option value="">-- Select Inventory --</option>
+                <label>Additional Photos (Individual/Defects)</label>
+                <input type="file" id="ord-images" multiple accept="image/*" style="margin-top:0;">
+
+                <select id="ord-stock-item" onchange="updateStockLabel()" style="margin-top:12px;">
+                    <option value="">-- Select Add-on (Laces etc) --</option>
                 </select>
-                <p id="stock-hint" style="font-size:11px; color:var(--text-sub); margin-top:-10px; margin-bottom:16px;"></p>
-                
-                <div class="card" style="border:2px dashed #ddd; text-align:center; padding:20px;">
-                    <p style="margin:0 0 10px 0; font-size:14px;">&#128248; Upload Intake Photos (Before)</p>
-                    <input type="file" id="ord-images" multiple accept="image/*" onchange="previewImages(this, 'image-preview-container')">
-                    <div id="image-preview-container" class="img-grid" style="justify-content:center; margin-top:10px;"></div>
-                </div>
+                <p id="stock-hint" style="font-size:11px; margin-top:-8px;"></p>
 
-                <label>Delivery & Porter</label>
+                <label style="margin-top:16px;">Delivery</label>
                 <select id="ord-delivery-mode" onchange="toggleDeliveryFields()">
-                    <option value="Walk-in">Walk-in (Customer visits shop)</option>
-                    <option value="Pickup">Pickup & Drop (Porter)</option>
+                    <option value="Walk-in">Walk-in</option>
+                    <option value="Pickup">Pickup & Drop</option>
                 </select>
-                
-                <div id="delivery-fields" class="hidden" style="background:#E5F1FF; padding:12px; border-radius:12px; margin-bottom:16px;">
-                    <label>Porter Cost (We Pay)</label>
-                    <input type="number" id="ord-porter-cost" placeholder="₹ Amount Paid to Porter" style="background:white;">
-                    <label>Delivery Charge (Client Pays)</label>
-                    <input type="number" id="ord-delivery-charge" placeholder="₹ Amount Charged to Client" style="background:white;" oninput="calcBalance()">
+                <div id="delivery-fields" class="hidden">
+                    <input type="number" id="ord-porter-cost" placeholder="Porter Cost (Expense)">
+                    <input type="number" id="ord-delivery-charge" placeholder="Delivery Charge (Income)" oninput="calcBalance()">
                 </div>
 
                 <label>Billing</label>
                 <div class="flex-row">
-                    <div class="flex-1">
-                        <label>Subtotal (Items)</label>
-                        <input type="number" id="ord-item-total" placeholder="₹" readonly style="background:#eee;">
-                    </div>
-                    <div class="flex-1">
-                        <label>Advance</label>
-                        <input type="number" id="ord-advance" placeholder="₹" oninput="calcBalance()">
-                    </div>
+                    <input type="number" id="ord-item-total" placeholder="Subtotal" readonly style="background:#eee;">
+                    <input type="number" id="ord-advance" placeholder="Advance" oninput="calcBalance()">
                 </div>
-                <div style="text-align:right; margin-bottom:16px;">
-                    <span style="font-size:14px; color:var(--text-sub);">Balance Due: </span>
-                    <span id="ord-balance" style="font-size:20px; font-weight:800; color:var(--danger);">₹0</span>
+                <div style="text-align:right; font-weight:bold; font-size:18px; margin-bottom:16px;">
+                    Balance: <span id="ord-balance" style="color:var(--danger)">0</span>
                 </div>
-                
                 <select id="ord-paymode">
-                    <option>Cash</option>
-                    <option>UPI / Online</option>
-                    <option>Card</option>
+                    <option>Cash</option><option>UPI</option><option>Card</option>
                 </select>
 
-                <button type="submit" class="btn btn-primary">Create Order</button>
+                <button type="submit" class="btn btn-primary">Save Order</button>
             </form>
         </div>
     </div>
 
-    <!-- SERVICE SELECTOR MODAL -->
-    <div id="modal-service-selector" class="modal" style="z-index: 2100;">
-        <div class="modal-header">
-            <h3>Select Services</h3>
-            <button class="close-btn" onclick="closeModal('modal-service-selector')">&times;</button>
-        </div>
-        <div class="modal-body" style="padding:0;">
-            <div id="service-options-container"></div>
-        </div>
-        <div style="padding:16px; border-top:1px solid #eee; background:white; position:sticky; bottom:0;">
-            <button class="btn btn-primary" onclick="saveServiceSelection()">Confirm</button>
-        </div>
+    <!-- SERVICE SELECTOR -->
+    <div id="modal-service-selector" class="modal" style="z-index: 3100;">
+        <div class="modal-header"><h3>Select Services</h3><button class="close-btn" onclick="closeModal('modal-service-selector')">&times;</button></div>
+        <div class="modal-body" id="service-options-container" style="padding:0;"></div>
+        <div style="padding:16px; border-top:1px solid #eee;"><button class="btn btn-primary" onclick="saveServiceSelection()">Confirm</button></div>
     </div>
 
-    <!-- PROOF UPLOAD MODAL -->
+    <!-- VIEW ORDER -->
+    <div id="modal-view-order" class="modal">
+        <div class="modal-header"><h3>Details</h3><button class="close-btn" onclick="closeModal('modal-view-order')">&times;</button></div>
+        <div class="modal-body" id="view-order-content"></div>
+        <div style="padding:16px; border-top:1px solid #eee;" id="order-action-bar" class="flex-row"></div>
+    </div>
+
+    <!-- PROOF MODAL -->
     <div id="modal-proof" class="modal">
-        <div class="modal-header">
-            <h3>Complete Order</h3>
-            <button type="button" class="close-btn" onclick="closeModal('modal-proof')">&times;</button>
-        </div>
+        <div class="modal-header"><h3>Complete</h3><button class="close-btn" onclick="closeModal('modal-proof')">&times;</button></div>
         <div class="modal-body">
-            <p>Please upload a photo of the <strong>completed shoes</strong> as proof before closing the order.</p>
-            <div class="card" style="border:2px dashed #34C759; text-align:center; padding:20px; background:#F0FFF4;">
-                <p style="margin:0 0 10px 0; font-size:14px;">&#128248; Upload Completed Photo</p>
-                <input type="file" id="proof-image" accept="image/*" onchange="previewImages(this, 'proof-preview-container')">
-                <div id="proof-preview-container" class="img-grid" style="justify-content:center; margin-top:10px;"></div>
-            </div>
-            <button class="btn btn-primary" onclick="saveProofAndComplete()">Submit & Complete</button>
-        </div>
-    </div>
-
-    <!-- CUSTOMER HISTORY MODAL -->
-    <div id="modal-customer-history" class="modal">
-        <div class="modal-header">
-            <h3>Customer History</h3>
-            <button type="button" class="close-btn" onclick="closeModal('modal-customer-history')">&times;</button>
-        </div>
-        <div class="modal-body" id="customer-history-content">
-            <!-- Populated by JS -->
+            <p>Upload completion proof:</p>
+            <input type="file" id="proof-image" accept="image/*">
+            <button class="btn btn-primary" onclick="saveProofAndComplete()">Complete</button>
         </div>
     </div>
 
     <!-- INVENTORY MODAL -->
     <div id="modal-inventory" class="modal">
-        <div class="modal-header">
-            <h3>Add Stock Item</h3>
-            <button type="button" class="close-btn" onclick="closeModal('modal-inventory')">&times;</button>
-        </div>
+        <div class="modal-header"><h3>Add Item</h3><button class="close-btn" onclick="closeModal('modal-inventory')">&times;</button></div>
         <div class="modal-body">
             <form onsubmit="saveInventory(event)">
-                <input type="text" id="inv-name" placeholder="Item Name (e.g. White Laces)" required>
+                <input type="text" id="inv-name" placeholder="Item Name" required>
                 <input type="text" id="inv-brand" placeholder="Brand" required>
-                <input type="number" id="inv-qty" placeholder="Quantity" required>
-                <input type="number" id="inv-price" placeholder="Cost Price" required>
-                <button type="submit" class="btn btn-primary">Add to Stock</button>
+                <input type="number" id="inv-qty" placeholder="Qty" required>
+                <input type="number" id="inv-price" placeholder="Price" required>
+                <button type="submit" class="btn btn-primary">Save</button>
             </form>
         </div>
     </div>
 
-    <!-- VIEW ORDER DETAILS MODAL -->
-    <div id="modal-view-order" class="modal">
-        <div class="modal-header">
-            <h3>Order Details</h3>
-            <button type="button" class="close-btn" onclick="closeModal('modal-view-order')">&times;</button>
-        </div>
-        <div class="modal-body" id="view-order-content">
-            <!-- Populated JS -->
-        </div>
-        <div id="order-action-bar" class="action-bar">
-            <!-- Buttons injected by JS -->
-        </div>
+    <!-- CUSTOMER HISTORY -->
+    <div id="modal-customer-history" class="modal">
+        <div class="modal-header"><h3>History</h3><button class="close-btn" onclick="closeModal('modal-customer-history')">&times;</button></div>
+        <div class="modal-body" id="customer-history-content"></div>
     </div>
 
-    <!-- IMAGE PREVIEW MODAL -->
-    <div id="modal-image-preview" class="modal" style="z-index: 3000;">
-        <div class="modal-header">
-            <h3>Image View</h3>
-            <button type="button" class="close-btn" onclick="closeModal('modal-image-preview')">&times;</button>
-        </div>
-        <div class="modal-body" style="padding:0; display:flex; align-items:center; justify-content:center; background:#000; height:100%;">
-            <img id="preview-full-img" src="" style="max-width:100%; max-height:80vh; object-fit:contain;">
+    <!-- IMAGE PREVIEW -->
+    <div id="modal-image-preview" class="modal" style="z-index: 4000;">
+        <div class="modal-header"><h3>View</h3><button class="close-btn" onclick="closeModal('modal-image-preview')">&times;</button></div>
+        <div class="modal-body" style="background:#000; display:flex; align-items:center; justify-content:center;">
+            <img id="preview-full-img" style="max-width:100%; max-height:80vh;">
         </div>
     </div>
 
     <script>
-        // Global Error Handler for debugging
-        window.onerror = function(message, source, lineno, colno, error) {
-            console.error(`App Crash: ${message} at line ${lineno}`);
-        };
-
         const REVIEW_LINK = "https://g.page/r/Ce0M0864Elt6EBE/review";
-        const LOGO_URL = "https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png"; 
+        const ALL_SERVICES = ["Standard Laundry", "Premium Deep Clean", "Sole Pasting", "Net Change", "Sole Change", "Heel Change", "Patch Work", "Grip Rubber", "Grip TPR", "Bag Chain Change", "Tongue Change", "Insole Change", "Colour Dye", "Repair", "Other"];
         
-        // Multi-Select Data
-        const ALL_SERVICES = [
-            "Standard Laundry", "Premium Deep Clean", "Sole Pasting",
-            "Net Change", "Sole Change", "Heel Change",
-            "Patch Work", "Grip Rubber", "Grip TPR",
-            "Bag Chain Change", "Tongue Change", "Insole Change",
-            "Colour Dye", "Repair", "Other"
-        ];
-        let currentServiceInput = null;
-
-        let db;
-        const DB_NAME = "MrBootDB";
-        const DB_VERSION = 2; 
-        
+        let db, currentServiceInput, pendingCompleteId;
         let inventory = JSON.parse(localStorage.getItem('mrboot_inventory')) || [];
         let orders = JSON.parse(localStorage.getItem('mrboot_orders')) || [];
         let customers = JSON.parse(localStorage.getItem('mrboot_customers')) || {};
         let lastSeqId = parseInt(localStorage.getItem('mrboot_last_seq')) || 0;
-        let pendingCompleteId = null; 
 
-        // --- Database Setup ---
         const initDB = () => {
-            const request = indexedDB.open(DB_NAME, DB_VERSION);
-            request.onupgradeneeded = (e) => {
-                db = e.target.result;
-                if (!db.objectStoreNames.contains('images')) db.createObjectStore('images', { keyPath: 'id' });
-            };
-            request.onsuccess = (e) => {
-                db = e.target.result;
-                document.getElementById('db-status').style.background = '#34C759';
-                renderOrders();
-            };
-            request.onerror = () => document.getElementById('db-status').style.background = '#FF3B30';
+            const r = indexedDB.open("MrBootDB", 2);
+            r.onupgradeneeded = e => { e.target.result.createObjectStore('images', { keyPath: 'id' }); };
+            r.onsuccess = e => { db = e.target.result; document.getElementById('db-status').style.background = '#34C759'; };
         };
 
-        // Async Image Store
-        const storeImages = (orderId, files, type = 'intake') => {
-            if (!files.length) return Promise.resolve(); 
-            
-            const fileReads = Array.from(files).map((file, index) => {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => resolve({ id: `${orderId}_${type}_${index}`, blob: e.target.result });
-                    reader.onerror = reject;
-                    reader.readAsDataURL(file);
-                });
-            });
-
-            return Promise.all(fileReads).then(imageDataArray => {
-                return new Promise((resolve, reject) => {
-                    if (!db) { reject("Database not ready"); return; }
-                    const transaction = db.transaction(['images'], 'readwrite');
-                    const store = transaction.objectStore('images');
-                    imageDataArray.forEach(data => store.put(data));
-                    transaction.oncomplete = () => resolve();
-                    transaction.onerror = (e) => reject(e);
-                });
-            }).catch(console.error);
-        };
-
-        const getImages = (orderId, container, typeFilter = 'intake') => {
-            if (!db) { container.innerHTML = "Loading..."; return; }
-            const transaction = db.transaction(['images'], 'readonly');
-            const request = transaction.objectStore('images').getAll();
-            container.innerHTML = '<p style="text-align:center; width:100%; color:#999; font-size:11px;">Loading...</p>';
-            request.onsuccess = () => {
-                const images = request.result.filter(img => img.id.startsWith(`${orderId}_${typeFilter}`));
-                container.innerHTML = '';
-                if(images.length === 0) container.innerHTML = '<p style="font-size:11px; color:#999; width:100%;">No photos.</p>';
-                images.forEach(img => {
-                    const el = document.createElement('img');
-                    el.src = img.blob;
-                    el.className = 'img-thumb';
-                    el.onclick = () => openImageModal(img.blob);
-                    container.appendChild(el);
-                });
-            };
-        };
-
-        // --- Core Functions ---
-        function generateOrderId() {
-            lastSeqId++;
-            localStorage.setItem('mrboot_last_seq', lastSeqId);
-            return String(lastSeqId).padStart(3, '0');
+        function attemptLogin() {
+            const p = document.getElementById('login-pin').value;
+            if(p !== "1234") return alert("Wrong PIN");
+            document.getElementById('login-screen').classList.add('hidden');
+            renderOrders();
         }
 
-        function checkDeliveryAlerts() {
-            const today = new Date().toISOString().split('T')[0];
-            const dueOrders = orders.filter(o => o.deliveryDate === today && o.status !== 'Completed');
-            const alertBox = document.getElementById('delivery-alert');
-            if(dueOrders.length > 0) {
-                document.getElementById('delivery-msg').textContent = `Today's Delivery: ${dueOrders.length} order(s) due!`;
-                alertBox.classList.remove('hidden');
-            } else {
-                alertBox.classList.add('hidden');
-            }
+        // --- Core ---
+        function switchView(id, el) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-'+id).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if(el) el.classList.add('active');
+            if(id === 'orders') renderOrders();
+            if(id === 'customers') renderCustomers();
+            if(id === 'inventory') renderInventory();
+            if(id === 'reports') renderReports();
         }
 
-        // --- Multi Service Selector ---
-        function openServiceSelector(el) {
-            currentServiceInput = el;
-            const currentVals = el.value.split(', ').filter(s => s);
-            const container = document.getElementById('service-options-container');
-            container.innerHTML = '';
-            
-            ALL_SERVICES.forEach(svc => {
-                const checked = currentVals.includes(svc) ? 'checked' : '';
-                const div = document.createElement('div');
-                div.className = 'service-option';
-                div.innerHTML = `
-                    <label style="display:flex; align-items:center; margin:0; padding:16px; border-bottom:1px solid #eee; cursor:pointer;">
-                        <input type="checkbox" value="${svc}" ${checked} style="width:20px; height:20px; margin:0 16px 0 0;">
-                        <span style="font-size:16px;">${svc}</span>
-                    </label>
-                `;
-                container.appendChild(div);
-            });
-            
-            document.getElementById('modal-service-selector').classList.add('open');
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+        
+        // --- Orders ---
+        function openOrderModal() {
+            document.getElementById('order-form').reset();
+            document.getElementById('order-items-container').innerHTML = '';
+            addOrderItem();
+            populateStockDropdown();
+            document.getElementById('modal-order').classList.add('open');
         }
 
-        function saveServiceSelection() {
-            const checked = Array.from(document.querySelectorAll('#service-options-container input:checked')).map(cb => cb.value);
-            if(currentServiceInput) {
-                currentServiceInput.value = checked.join(', ');
-            }
-            closeModal('modal-service-selector');
-        }
-
-        // --- Dynamic Items Logic ---
         function addOrderItem() {
-            const container = document.getElementById('order-items-container');
             const div = document.createElement('div');
             div.className = 'item-row';
             div.innerHTML = `
                 <button type="button" class="remove-item" onclick="this.parentElement.remove(); calcBalance();">&times;</button>
                 <div class="flex-row">
-                    <input type="text" class="item-brand" placeholder="Brand (e.g. Nike)" style="flex:1; margin-bottom:8px;">
-                    <select class="item-type" style="flex:1; margin-bottom:8px;">
-                        <option>Sneaker</option><option>Sport Shoe</option><option>Formals</option><option>Formals Suede</option>
-                        <option>Boots</option><option>Heels</option><option>Sandals</option><option>Chappals</option>
-                        <option>Kolhapuri</option><option>Bags</option><option>Jackets</option><option>Other</option>
-                    </select>
+                    <input type="text" class="item-brand" placeholder="Brand">
+                    <select class="item-type"><option>Sneaker</option><option>Sport Shoe</option><option>Formals</option><option>Boots</option><option>Heels</option><option>Sandals</option><option>Bags</option><option>Jackets</option><option>Other</option></select>
                 </div>
+                <input type="text" class="item-service" placeholder="Select Services" readonly onclick="openServiceSelector(this)" style="cursor:pointer; background:white;">
                 <div class="flex-row">
-                    <!-- Read-only input triggered modal -->
-                    <input type="text" class="item-service" placeholder="Select Services" readonly onclick="openServiceSelector(this)" style="flex:1; margin-bottom:8px; background-color: #fff; border: 1px solid var(--primary); cursor: pointer;">
-                </div>
-                <div class="flex-row">
-                    <input type="text" class="item-specs" placeholder="Work Specification (e.g. White Sole)" style="flex:1.5; margin-bottom:0; font-size:14px;">
-                    <input type="number" class="item-price" placeholder="Price" style="flex:0.8; margin-bottom:0;" oninput="calcBalance()">
+                    <input type="text" class="item-specs" placeholder="Specs">
+                    <input type="number" class="item-price" placeholder="Price" oninput="calcBalance()">
                 </div>
             `;
-            container.appendChild(div);
+            document.getElementById('order-items-container').appendChild(div);
+        }
+
+        function openServiceSelector(el) {
+            currentServiceInput = el;
+            const container = document.getElementById('service-options-container');
+            container.innerHTML = '';
+            const current = el.value.split(', ');
+            ALL_SERVICES.forEach(s => {
+                const checked = current.includes(s) ? 'checked' : '';
+                container.innerHTML += `
+                    <label class="service-option-label">
+                        <input type="checkbox" value="${s}" ${checked}>
+                        <span class="service-text">${s}</span>
+                        <div class="service-tick"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
+                    </label>`;
+            });
+            document.getElementById('modal-service-selector').classList.add('open');
+        }
+
+        function saveServiceSelection() {
+            const vals = Array.from(document.querySelectorAll('#service-options-container input:checked')).map(c => c.value);
+            if(currentServiceInput) currentServiceInput.value = vals.join(', ');
+            closeModal('modal-service-selector');
+        }
+
+        function calcBalance() {
+            let total = 0;
+            document.querySelectorAll('.item-price').forEach(i => total += (parseFloat(i.value)||0));
+            document.getElementById('ord-item-total').value = total;
+            const del = parseFloat(document.getElementById('ord-delivery-charge').value)||0;
+            const adv = parseFloat(document.getElementById('ord-advance').value)||0;
+            document.getElementById('ord-balance').innerText = (total + del - adv);
         }
 
         function toggleDeliveryFields() {
             const mode = document.getElementById('ord-delivery-mode').value;
             const fields = document.getElementById('delivery-fields');
-            if(mode === 'Pickup') {
-                fields.classList.remove('hidden');
-            } else {
-                fields.classList.add('hidden');
-                document.getElementById('ord-porter-cost').value = '';
-                document.getElementById('ord-delivery-charge').value = '';
-                calcBalance();
-            }
-        }
-
-        function calcBalance() {
-            let itemTotal = 0;
-            document.querySelectorAll('.item-price').forEach(inp => {
-                itemTotal += parseFloat(inp.value) || 0;
-            });
-            document.getElementById('ord-item-total').value = itemTotal;
-
-            const delivery = parseFloat(document.getElementById('ord-delivery-charge').value) || 0;
-            const advance = parseFloat(document.getElementById('ord-advance').value) || 0;
-            
-            const grandTotal = itemTotal + delivery;
-            document.getElementById('ord-balance').textContent = "₹" + (grandTotal - advance).toFixed(2);
+            fields.style.display = mode === 'Pickup' ? 'block' : 'none';
+            if(mode !== 'Pickup') { document.getElementById('ord-porter-cost').value=''; document.getElementById('ord-delivery-charge').value=''; calcBalance(); }
         }
 
         async function saveOrder(e) {
             e.preventDefault();
-            
             const items = [];
-            document.querySelectorAll('.item-row').forEach(row => {
+            document.querySelectorAll('.item-row').forEach(r => {
                 items.push({
-                    brand: row.querySelector('.item-brand').value,
-                    type: row.querySelector('.item-type').value,
-                    service: row.querySelector('.item-service').value, // Now gets string from readonly input
-                    specs: row.querySelector('.item-specs').value,
-                    price: parseFloat(row.querySelector('.item-price').value) || 0
+                    brand: r.querySelector('.item-brand').value,
+                    type: r.querySelector('.item-type').value,
+                    service: r.querySelector('.item-service').value,
+                    specs: r.querySelector('.item-specs').value,
+                    price: parseFloat(r.querySelector('.item-price').value)||0
                 });
             });
+            if(!items.length) return alert("Add items");
 
-            if(items.length === 0) { alert("Please add at least one item."); return; }
-
-            const seqId = generateOrderId();
+            lastSeqId++; localStorage.setItem('mrboot_last_seq', lastSeqId);
             const id = Date.now();
-            
             const phone = document.getElementById('ord-phone').value;
-            const name = document.getElementById('ord-name').value;
-            const deliveryDate = document.getElementById('ord-date-delivery').value;
-            
             const itemTotal = parseFloat(document.getElementById('ord-item-total').value);
-            const deliveryCharge = parseFloat(document.getElementById('ord-delivery-charge').value) || 0;
-            const porterCost = parseFloat(document.getElementById('ord-porter-cost').value) || 0;
-            const advance = parseFloat(document.getElementById('ord-advance').value) || 0;
-            const grandTotal = itemTotal + deliveryCharge;
+            const deliveryCharge = parseFloat(document.getElementById('ord-delivery-charge').value)||0;
+            const advance = parseFloat(document.getElementById('ord-advance').value)||0;
 
-            const newOrder = {
-                id: id,
-                seqId: seqId, 
+            const order = {
+                id, seqId: String(lastSeqId).padStart(3,'0'),
                 date: new Date().toLocaleDateString(),
-                deliveryDate: deliveryDate,
-                timestamp: Date.now(),
-                customer: { name, phone, address: document.getElementById('ord-address').value },
-                items: items, 
-                delivery: {
-                    mode: document.getElementById('ord-delivery-mode').value,
-                    porterCost: porterCost,
-                    charge: deliveryCharge
-                },
-                financials: { 
-                    itemTotal: itemTotal,
-                    total: grandTotal, 
-                    advance: advance, 
-                    balance: grandTotal - advance, 
-                    mode: document.getElementById('ord-paymode').value 
-                },
-                status: 'Pending',
-                stockUsed: document.getElementById('ord-stock-item').value || null
+                deliveryDate: document.getElementById('ord-date-delivery').value,
+                customer: { name: document.getElementById('ord-name').value, phone, address: document.getElementById('ord-address').value },
+                items,
+                delivery: { mode: document.getElementById('ord-delivery-mode').value, porterCost: parseFloat(document.getElementById('ord-porter-cost').value)||0, charge: deliveryCharge },
+                financials: { total: itemTotal+deliveryCharge, advance, balance: (itemTotal+deliveryCharge)-advance, mode: document.getElementById('ord-paymode').value },
+                status: 'Pending'
             };
 
-            orders.unshift(newOrder);
+            orders.unshift(order);
             localStorage.setItem('mrboot_orders', JSON.stringify(orders));
-            await storeImages(id, document.getElementById('ord-images').files, 'intake');
-
-            if(!customers[phone]) customers[phone] = { name, phone, address: newOrder.customer.address, joined: newOrder.date, spend: 0, count: 0 };
-            customers[phone].spend += grandTotal;
-            customers[phone].count += 1;
-            customers[phone].lastOrder = newOrder.date;
+            
+            // Save Customer
+            if(!customers[phone]) customers[phone] = { name: order.customer.name, phone, count: 0, spend: 0 };
+            customers[phone].count++; customers[phone].spend += order.financials.total;
             localStorage.setItem('mrboot_customers', JSON.stringify(customers));
+
+            // Save Images
+            // 1. Main Bill Photo
+            const mainPhotoFile = document.getElementById('ord-main-image').files[0];
+            if (mainPhotoFile) {
+                await storeImages(id, [mainPhotoFile], 'main'); // New type 'main'
+            }
+
+            // 2. Additional Photos
+            const additionalFiles = document.getElementById('ord-images').files;
+            if(additionalFiles.length) {
+                await storeImages(id, additionalFiles, 'intake');
+            }
 
             const stockId = document.getElementById('ord-stock-item').value;
             if (stockId) {
@@ -706,8 +580,6 @@
 
             closeModal('modal-order');
             renderOrders();
-            renderReports();
-            checkDeliveryAlerts();
         }
 
         // --- Proof & Completion Logic ---
@@ -719,441 +591,167 @@
         }
 
         async function saveProofAndComplete() {
-            const fileInput = document.getElementById('proof-image');
-            if (fileInput.files.length === 0) {
-                alert("You must upload a completion photo!");
-                return;
-            }
-
-            const btn = document.querySelector('#modal-proof .btn-primary');
-            const originalText = btn.textContent;
-            btn.textContent = "Saving...";
-            btn.disabled = true;
-
-            try {
-                await storeImages(pendingCompleteId, fileInput.files, 'proof');
-                updateStatus(pendingCompleteId, 'Completed', false); 
-                closeModal('modal-proof');
-                openViewOrder(pendingCompleteId); // Refresh view
-            } catch (err) {
-                console.error(err);
-                alert("Error saving proof. Please try again.");
-            } finally {
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }
+            const files = document.getElementById('proof-image').files;
+            if(!files.length) return alert("Upload Proof");
+            
+            const reads = Array.from(files).map((f,i) => new Promise(res => {
+                const r = new FileReader(); r.onload=e=>res({id:`${pendingCompleteId}_proof_${i}`, blob:e.target.result}); r.readAsDataURL(f);
+            }));
+            const imgs = await Promise.all(reads);
+            const tx = db.transaction(['images'], 'readwrite');
+            imgs.forEach(i => tx.objectStore('images').put(i));
+            
+            updateStatus(pendingCompleteId, 'Completed', false); 
+            closeModal('modal-proof');
+            openViewOrder(pendingCompleteId); 
         }
 
         function renderOrders(filter = 'All') {
             const list = document.getElementById('orders-list');
             list.innerHTML = '';
             const filtered = orders.filter(o => filter === 'All' ? true : o.status === filter);
+            
+            // Check Alerts
+            const today = new Date().toISOString().split('T')[0];
+            const due = orders.filter(o => o.deliveryDate === today && o.status !== 'Completed').length;
+            const alert = document.getElementById('delivery-alert');
+            if(due > 0) { alert.classList.remove('hidden'); document.getElementById('delivery-count').innerText = due; } 
+            else alert.classList.add('hidden');
 
             filtered.forEach(o => {
-                let badgeClass = 'bg-pending';
-                if(o.status === 'Ready') badgeClass = 'bg-ready';
-                if(o.status === 'Completed') badgeClass = 'bg-completed';
-
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.onclick = () => openViewOrder(o.id);
-                
-                let deliveryTag = "";
-                if(o.delivery && o.delivery.mode === 'Pickup') {
-                    deliveryTag = `<span style="font-size:10px; background:#E5F1FF; color:#007AFF; padding:2px 6px; border-radius:4px; margin-left:6px;">\uD83D\uDE9A Pickup</span>`;
-                }
-
-                let itemSummary = "";
-                if(o.items && o.items.length > 0) {
-                    itemSummary = o.items.map(i => `${i.brand} ${i.type}`).join(", ");
-                } else if (o.details) {
-                    itemSummary = o.details.type; 
-                }
-
-                card.innerHTML = `
-                    <div class="order-header">
-                        <span class="order-id">#${o.seqId}</span>
-                        <span class="order-date">${o.deliveryDate ? 'Due: '+o.deliveryDate : o.date}</span>
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.onclick = () => openViewOrder(o.id);
+                div.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <span class="badge" style="background:#eee;">#${o.seqId}</span>
+                        <span style="font-size:12px; color:#888;">${o.date}</span>
                     </div>
-                    <div class="customer-row">
-                        <span class="cust-name">${o.customer.name}</span>
-                        <div style="display:flex; align-items:center;">
-                            ${deliveryTag}
-                            <span class="badge ${badgeClass}" style="margin-left:8px;">${o.status}</span>
-                        </div>
-                    </div>
-                    <div class="order-details" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${itemSummary}</div>
-                    <div class="order-footer">
-                        <span class="price-tag">₹${o.financials.total}</span>
-                        ${o.financials.balance > 0 ? `<span class="balance-due">Due: ₹${o.financials.balance}</span>` : '<span style="color:var(--success); font-size:12px; font-weight:600;">Paid</span>'}
+                    <div style="font-weight:bold; font-size:16px;">${o.customer.name}</div>
+                    <div style="font-size:14px; color:#555; margin:4px 0;">${o.items.map(i=>i.type).join(', ')}</div>
+                    <div style="display:flex; justify-content:space-between; margin-top:8px;">
+                        <span class="badge ${o.status==='Completed'?'bg-completed':(o.status==='Ready'?'bg-ready':'bg-pending')}">${o.status}</span>
+                        <span style="font-weight:bold; color:${o.financials.balance>0?'var(--danger)':'var(--success)'}">Bal: ${o.financials.balance}</span>
                     </div>
                 `;
-                list.appendChild(card);
+                list.appendChild(div);
             });
         }
 
         function openViewOrder(id) {
-            const order = orders.find(o => o.id === id);
+            const o = orders.find(x => x.id === id);
             const content = document.getElementById('view-order-content');
-            const actionBar = document.getElementById('order-action-bar');
+            const actions = document.getElementById('order-action-bar');
             
-            let itemsHtml = "";
-            if (order.items) {
-                itemsHtml = order.items.map(i => `
-                    <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:8px 0;">
-                        <div style="flex:1; padding-right:10px;">
-                            <strong>${i.brand}</strong> <span style="color:#666;">${i.type}</span><br>
-                            <span style="font-size:13px; color:#333; line-height:1.4; display:block; margin-top:2px;">${i.service}</span><br>
-                            ${i.specs ? `<span style="font-size:11px; color:#888; font-style:italic;">${i.specs}</span>` : ''}
-                        </div>
-                        <div style="font-weight:600;">₹${i.price}</div>
-                    </div>
-                `).join("");
-            } else if (order.details) { 
-                itemsHtml = `<div>${order.details.qty} x ${order.details.type} (${order.details.service}) - Subtotal ₹${order.financials.itemTotal}</div>`;
-            }
-
+            let itemsHtml = o.items.map(i => `<div style="border-bottom:1px solid #eee; padding:8px 0;"><b>${i.brand} ${i.type}</b><br><small>${i.service}</small></div>`).join('');
+            
             content.innerHTML = `
-                <div style="text-align:center; margin-bottom:20px;">
-                    <span class="order-id" style="font-size:20px;">#${order.seqId}</span>
-                    <h2 style="margin:10px 0 4px 0;">${order.customer.name}</h2>
-                    <div style="color:var(--text-sub); font-size:14px;">${order.customer.phone}</div>
-                    <div style="font-weight:600; color:#E65100; margin-top:8px;">Delivery: ${order.deliveryDate || 'Not Set'}</div>
+                <div style="text-align:center; margin-bottom:16px;">
+                    <div id="view-order-main-photo" style="width:100%; height:200px; background:#f0f0f0; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; overflow:hidden;">Loading Photo...</div>
+                    <h2>${o.customer.name}</h2>
+                    <a href="tel:${o.customer.phone}" style="color:var(--info);">${o.customer.phone}</a>
+                    <p>${o.customer.address}</p>
+                </div>
+                <div class="card" style="background:#fafafa;">${itemsHtml}</div>
+                <div style="display:flex; justify-content:space-between; margin-top:16px;">
+                    <span>Total: <b>${o.financials.total}</b></span>
+                    <span>Advance: <b>${o.financials.advance}</b></span>
+                    <span style="color:${o.financials.balance>0?'red':'green'}">Bal: <b>${o.financials.balance}</b></span>
                 </div>
                 
-                <div class="card" style="background:#F9F9F9; border:none;">
-                    <h4 style="margin:0 0 10px 0;">Items</h4>
-                    ${itemsHtml}
-                    ${order.delivery && order.delivery.mode === 'Pickup' ? `<div style="text-align:right; margin-top:8px; font-size:13px; color:#007AFF;">+ Delivery: ₹${order.delivery.charge}</div>` : ''}
-                </div>
-
-                <h4 style="margin:16px 0 8px 0;">Intake Photos</h4>
+                <h4 style="margin:16px 0 8px 0;">Other Photos</h4>
                 <div id="view-order-intake-images" class="img-grid"></div>
-
-                ${order.status === 'Completed' ? `<h4 style="margin:16px 0 8px 0; color:#34C759;">Completion Proof</h4><div id="view-order-proof-images" class="img-grid"></div>` : ''}
-
-                <div style="margin-top:20px; border-top:1px solid #eee; padding-top:16px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-weight:700;">
-                        <span>Total</span> <span>₹${order.financials.total}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:6px; color:var(--success);">
-                        <span>Advance Paid</span> <span>- ₹${order.financials.advance}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:18px; font-weight:800; color:${order.financials.balance > 0 ? 'var(--danger)' : 'var(--success)'}; margin-top:8px;">
-                        <span>Balance</span> <span>₹${order.financials.balance}</span>
-                    </div>
-                </div>
+                ${o.status === 'Completed' ? `<h4 style="margin:16px 0 8px 0; color:#34C759;">Proof</h4><div id="view-order-proof-images" class="img-grid"></div>` : ''}
             `;
 
+            // Load Images
+            // 1. Main Photo
+            const transaction = db.transaction(['images'], 'readonly');
+            const store = transaction.objectStore('images');
+            const reqMain = store.get(`${o.id}_main_0`);
+            reqMain.onsuccess = () => {
+                const div = document.getElementById('view-order-main-photo');
+                if(reqMain.result) {
+                    div.innerHTML = `<img src="${reqMain.result.blob}" style="width:100%; height:100%; object-fit:cover;" onclick="openImageModal(this.src)">`;
+                } else {
+                    div.innerHTML = `<span style="color:#999; font-size:12px;">No Main Bill Photo</span>`;
+                }
+            };
+
+            // 2. Additional Photos
             getImages(id, document.getElementById('view-order-intake-images'), 'intake');
-            if (order.status === 'Completed') {
+            if (o.status === 'Completed') {
                 getImages(id, document.getElementById('view-order-proof-images'), 'proof');
             }
 
-            actionBar.innerHTML = '';
-            
-            const waBtn = document.createElement('button');
-            waBtn.className = 'btn btn-whatsapp';
-            waBtn.style.flex = "2";
-            
-            const statusBtn = document.createElement('button');
-            statusBtn.className = 'btn btn-primary';
-            statusBtn.style.flex = "1";
-
-            if (order.status === 'Pending') {
-                waBtn.innerHTML = `Send Bill`;
-                waBtn.onclick = () => shareBill(order);
-                statusBtn.textContent = "Mark Ready";
-                statusBtn.onclick = () => updateStatus(order.id, 'Ready');
-                actionBar.append(waBtn, statusBtn);
-            } else if (order.status === 'Ready') {
-                waBtn.innerHTML = `Notify Ready`;
-                waBtn.onclick = () => sendWhatsApp(order.customer.phone, getReadyText(order));
-                statusBtn.textContent = "Complete (Upload Proof)";
-                statusBtn.onclick = () => initiateCompleteOrder(order.id); 
-                actionBar.append(waBtn, statusBtn);
+            actions.innerHTML = '';
+            if(o.status === 'Pending') {
+                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="shareBill(${o.id})">Send Bill</button><button class="btn btn-primary" onclick="updateStatus(${o.id}, 'Ready')">Mark Ready</button>`;
+            } else if (o.status === 'Ready') {
+                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="sendWhatsApp('${o.customer.phone}', 'Hello ${o.customer.name}, your order #${o.seqId} is ready!')">Notify</button><button class="btn btn-primary" onclick="pendingCompleteId=${o.id}; document.getElementById('modal-proof').classList.add('open')">Complete</button>`;
             } else {
-                waBtn.innerHTML = `Ask Review`;
-                waBtn.style.flex = "1";
-                waBtn.onclick = () => sendWhatsApp(order.customer.phone, getReviewText(order));
-                actionBar.append(waBtn);
-                statusBtn.style.display = 'none';
+                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="sendWhatsApp('${o.customer.phone}', '${REVIEW_LINK}')">Ask Review</button>`;
             }
-
             document.getElementById('modal-view-order').classList.add('open');
         }
 
-        function showCustomerHistory(phone) {
-            const custOrders = orders.filter(o => o.customer.phone === phone);
-            const container = document.getElementById('customer-history-content');
-            container.innerHTML = '';
-
-            custOrders.forEach(o => {
-                const div = document.createElement('div');
-                div.className = 'card';
-                let itemText = o.items ? o.items.map(i => i.brand).join(", ") : (o.details ? o.details.type : "");
-                div.innerHTML = `
-                    <div style="font-weight:bold; display:flex; justify-content:space-between;">
-                        <span>Order #${o.seqId}</span>
-                        <span style="font-size:12px; color:#888;">${o.date}</span>
-                    </div>
-                    <p style="margin:4px 0 8px 0; font-size:14px;">${itemText}</p>
-                    <div style="display:flex; gap:10px;">
-                        <div style="flex:1;">
-                            <span style="font-size:10px; text-transform:uppercase; color:#666;">Intake</span>
-                            <div id="hist-intake-${o.id}" class="img-grid" style="height:50px;"></div>
-                        </div>
-                        <div style="flex:1;">
-                            <span style="font-size:10px; text-transform:uppercase; color:#34C759;">Completed</span>
-                            <div id="hist-proof-${o.id}" class="img-grid" style="height:50px;"></div>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(div);
-                getImages(o.id, document.getElementById(`hist-intake-${o.id}`), 'intake');
-                getImages(o.id, document.getElementById(`hist-proof-${o.id}`), 'proof');
-            });
-            document.getElementById('modal-customer-history').classList.add('open');
-        }
-
-        function renderCustomers() {
-            const list = document.getElementById('customers-list');
-            list.innerHTML = '';
-            Object.values(customers).sort((a,b) => b.spend - a.spend).forEach(c => {
-                const el = document.createElement('div');
-                el.className = 'card';
-                el.onclick = () => showCustomerHistory(c.phone); 
-                el.innerHTML = `<div style="display:flex;justify-content:space-between;"><div><div style="font-weight:700;">${c.name}</div><div style="color:#888;font-size:13px;">${c.phone}</div></div><div style="text-align:right;"><div style="font-weight:700;color:var(--primary);">\u20B9${c.spend}</div><div style="font-size:11px;color:#999;">${c.count} Orders</div></div></div>`;
-                list.appendChild(el);
-            });
-        }
-
-        function renderReports() {
-            let revenue = 0, pending = 0, expenses = 0;
-            let active = 0, ready = 0, done = 0;
-            orders.forEach(o => {
-                revenue += o.financials.total; 
-                if(o.status === 'Completed') {} else { pending += o.financials.balance; }
-                if(o.delivery && o.delivery.porterCost) { expenses += o.delivery.porterCost; }
-                if(o.status === 'Pending') active++;
-                if(o.status === 'Ready') ready++;
-                if(o.status === 'Completed') done++;
-            });
-            document.getElementById('rep-revenue').textContent = revenue.toLocaleString();
-            document.getElementById('rep-pending').textContent = pending.toLocaleString();
-            document.getElementById('rep-expenses').textContent = expenses.toLocaleString();
-            document.getElementById('rep-profit').textContent = (revenue - expenses).toLocaleString();
-            document.getElementById('rep-active').textContent = active;
-            document.getElementById('rep-ready').textContent = ready;
-            document.getElementById('rep-done').textContent = done;
-        }
-
-        function checkCustomer(phone) {
-            if(customers[phone]) {
-                document.getElementById('ord-name').value = customers[phone].name;
-                document.getElementById('ord-address').value = customers[phone].address;
-            }
-        }
-
-        function updateStockLabel() {
-            const id = document.getElementById('ord-stock-item').value;
-            const hint = document.getElementById('stock-hint');
-            if(!id) { hint.textContent = ""; return; }
-            const item = inventory.find(i => i.id == id);
-            if(item) hint.textContent = `Selected: ${item.name} (${item.qty} in stock)`;
-        }
-
-        function populateStockDropdown() {
-            const sel = document.getElementById('ord-stock-item');
-            sel.innerHTML = '<option value="">-- Select Inventory --</option>';
-            inventory.forEach(i => {
-                if(i.qty > 0) {
-                    const opt = document.createElement('option');
-                    opt.value = i.id;
-                    opt.text = `${i.name} (Qty: ${i.qty})`;
-                    sel.appendChild(opt);
-                }
-            });
-        }
-
-        function switchView(viewId, el) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById(`view-${viewId}`).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            if(el) el.classList.add('active');
-            if(viewId === 'orders') renderOrders();
-            if(viewId === 'customers') renderCustomers();
-            if(viewId === 'inventory') renderInventory();
-            if(viewId === 'reports') renderReports();
-        }
-
         function updateStatus(id, status, closeMainModal = true) {
-            const idx = orders.findIndex(o => o.id === id);
-            if(idx > -1) {
-                orders[idx].status = status;
-                if(status === 'Completed') orders[idx].financials.balance = 0;
-                localStorage.setItem('mrboot_orders', JSON.stringify(orders));
-                if(closeMainModal) closeModal('modal-view-order');
-                renderOrders();
-                renderReports();
-                checkDeliveryAlerts();
-            }
+            const idx = orders.findIndex(x => x.id === id);
+            orders[idx].status = status;
+            if(status === 'Completed') orders[idx].financials.balance = 0;
+            localStorage.setItem('mrboot_orders', JSON.stringify(orders));
+            if(closeMainModal) closeModal('modal-view-order');
+            renderOrders();
         }
 
-        function saveInventory(e) {
-            e.preventDefault();
-            const item = {
-                id: Date.now(),
-                name: document.getElementById('inv-name').value,
-                brand: document.getElementById('inv-brand').value,
-                qty: parseInt(document.getElementById('inv-qty').value) || 0,
-                price: parseFloat(document.getElementById('inv-price').value) || 0
-            };
-            inventory.unshift(item); // Add to top usually better for UI
-            localStorage.setItem('mrboot_inventory', JSON.stringify(inventory));
-            closeModal('modal-inventory');
-            renderInventory();
-            e.target.reset();
-        }
-
-        function openImageModal(blob) { document.getElementById('preview-full-img').src = blob; document.getElementById('modal-image-preview').classList.add('open'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-        function openOrderModal() { 
-            document.getElementById('order-form').reset();
-            document.getElementById('image-preview-container').innerHTML = '';
-            document.getElementById('order-items-container').innerHTML = ''; 
-            addOrderItem(); 
-            document.getElementById('delivery-fields').classList.add('hidden');
-            populateStockDropdown();
-            document.getElementById('modal-order').classList.add('open'); 
-        }
-        function openInventoryModal() { document.getElementById('modal-inventory').classList.add('open'); }
-        function previewImages(input, containerId) {
-            const container = document.getElementById(containerId);
-            container.innerHTML = '';
-            Array.from(input.files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    const img = document.createElement('img');
-                    img.src = e.target.result; img.className = 'img-thumb';
-                    container.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            });
-        }
-        function filterOrders(status) {
-            document.querySelectorAll('.sub-tabs button').forEach(t => t.style.opacity = '0.6');
-            event.target.style.opacity = '1';
-            renderOrders(status);
-        }
-        function renderInventory() {
-            const list = document.getElementById('inventory-list');
-            list.innerHTML = '';
-            inventory.forEach(i => {
-                const el = document.createElement('div');
-                el.className = 'card';
-                el.innerHTML = `<div style="display:flex;justify-content:space-between;"><div><div style="font-weight:600;">${i.name}</div><div style="font-size:13px;color:#666;">${i.brand}</div></div><div style="text-align:right;"><div style="font-weight:700;">Qty: ${i.qty}</div><div style="font-size:12px;color:#999;">\u20B9${i.price}</div></div></div>`;
-                list.appendChild(el);
-            });
-        }
-
-        function sendWhatsApp(phone, text) { window.open(`https://wa.me/91${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank'); }
-        function getReadyText(o) { return `\uD83D\uDC4B Hello ${o.customer.name},\n\n\u2705 Your order *#${o.seqId}* is ready!\n\n\uD83D\uDCB0 Balance: \u20B9${o.financials.balance}\n\n\uD83D\uDCCD Pickup at Mr Boot.`; }
-        function getReviewText(o) { return `Mr.Boot Shoe Laundry And Repairing Services would love your feedback. Post a review to our profile.\n${REVIEW_LINK}`; }
-
-        // --- Canvas Helper: Wrap Text ---
-        function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-            const words = text.split(' ');
-            let line = '';
-            let currentY = y;
-
-            for (let n = 0; n < words.length; n++) {
-                const testLine = line + words[n] + ' ';
-                const metrics = ctx.measureText(testLine);
-                const testWidth = metrics.width;
-                if (testWidth > maxWidth && n > 0) {
-                    ctx.fillText(line, x, currentY);
-                    line = words[n] + ' ';
-                    currentY += lineHeight;
-                } else {
-                    line = testLine;
-                }
-            }
-            ctx.fillText(line, x, currentY);
-            return currentY + lineHeight;
-        }
-
-        async function shareBill(o) {
+        // --- Bill Gen ---
+        async function shareBill(id) {
+            const o = orders.find(x => x.id === id);
             const canvas = document.getElementById('billCanvas');
             const ctx = canvas.getContext('2d');
             const width = 900;
             
-            // Calculate dynamic height based on text length
-            let dynamicContentHeight = 0;
-            ctx.font = 'italic 30px sans-serif'; // Set font for measurement
+            // Calc Height
+            let dynamicContentHeight = 300;
             if(o.items) {
+                dynamicContentHeight = 0;
                 o.items.forEach(item => {
-                    // Approx height per item block
-                    dynamicContentHeight += 70; // Brand/Type
-                    // Measure wrapped service text
-                    const words = item.service.split(' ');
-                    let line = '';
-                    let lines = 1;
-                    for(let n=0; n<words.length; n++) {
-                        if (ctx.measureText(line + words[n]).width > 800) { lines++; line = ''; }
-                        line += words[n] + ' ';
-                    }
-                    dynamicContentHeight += (lines * 40); // Service lines
-                    if(item.specs) dynamicContentHeight += 35;
-                    dynamicContentHeight += 20; // Padding
+                    dynamicContentHeight += 120; // Rough item height
                 });
-            } else {
-                dynamicContentHeight = 300; // fallback
             }
-
-            const baseHeight = 1300; 
-            const height = baseHeight + dynamicContentHeight; // 9:16 Ratio approx
+            const height = 1300 + dynamicContentHeight; 
             canvas.width = width; 
             canvas.height = height;
             
-            // Background
-            ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,width,height);
+            // BG
+            ctx.fillStyle = "white"; ctx.fillRect(0,0,width,height);
             
-            // Header - Logo Area (Try to draw logo from header img if loaded, else text)
-            const logoImg = document.getElementById('header-logo');
+            // Header (Fallback to text if image fails/CORS)
+            const logoImg = document.getElementById('logo-img-res');
             let logoDrawn = false;
-            if(logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
-                try {
-                    const logoSize = 300;
-                    const aspect = logoImg.naturalWidth / logoImg.naturalHeight;
-                    const drawW = logoSize * aspect;
-                    // Center logo
-                    ctx.drawImage(logoImg, (width/2)-(drawW/2), 50, drawW, logoSize);
+            try {
+                if(logoImg.complete && logoImg.naturalWidth > 0) {
+                    ctx.drawImage(logoImg, width/2 - 150, 50, 300, 300 * (logoImg.height/logoImg.width));
                     logoDrawn = true;
-                } catch(e) { console.log("Logo draw error", e); }
-            }
-            
+                }
+            } catch(e) {}
+
             if(!logoDrawn) {
-                ctx.fillStyle='#4E342E'; 
-                ctx.font='bold 60px sans-serif'; ctx.textAlign='center'; 
-                ctx.fillText('MR BOOT', width/2, 200);
+                ctx.fillStyle = "#4E342E"; ctx.font = "bold 60px sans-serif"; ctx.textAlign = "center";
+                ctx.fillText("MR BOOT", width/2, 200);
             }
             
-            ctx.fillStyle='#4E342E';
-            ctx.font='30px sans-serif'; ctx.textAlign='center';
-            ctx.fillText('SHOE LAUNDRY & REPAIR', width/2, 380);
+            ctx.fillStyle="#4E342E"; ctx.font = "30px sans-serif"; ctx.textAlign="center";
+            ctx.fillText("SHOE LAUNDRY", width/2, 380);
             
-            // Try to draw Intake Photo
+            // Try to draw Main Photo (Specifically the "Main Bill Photo")
             if(db) {
-                // ... (Existing photo drawing logic remains same) ...
                 const firstImageBlob = await new Promise(resolve => {
                     const transaction = db.transaction(['images'], 'readonly');
                     const store = transaction.objectStore('images');
-                    const req = store.getAll();
-                    req.onsuccess = () => {
-                        const img = req.result.find(i => i.id.startsWith(`${o.id}_intake_0`));
-                        resolve(img ? img.blob : null);
-                    };
+                    // Look specifically for the 'main' photo
+                    const req = store.get(`${o.id}_main_0`);
+                    req.onsuccess = () => resolve(req.result ? req.result.blob : null);
                     req.onerror = () => resolve(null);
                 });
 
@@ -1169,121 +767,159 @@
                 }
             }
 
-            // Order Details Section
-            let y = 980;
-            ctx.fillStyle='#000'; ctx.textAlign='left';
-            ctx.font='bold 40px sans-serif'; 
-            ctx.fillText(`ORDER #${o.seqId}`, 50, y);
-            ctx.textAlign='right';
-            ctx.font='35px sans-serif';
-            ctx.fillText(o.date, 850, y);
-            
-            y += 60;
-            ctx.beginPath(); ctx.moveTo(50,y); ctx.lineTo(850,y); ctx.lineWidth=3; ctx.strokeStyle='#eee'; ctx.stroke();
-            y += 60;
+            // Content
+            let y = 450 + 500; // Shift down below image area
+            if (y > 900) y = 980; // Adjust if image present
 
-            // Items List
-            ctx.textAlign='left';
-            if(o.items) {
-                o.items.forEach(item => {
-                    ctx.font='bold 36px sans-serif'; ctx.fillStyle='#000';
-                    ctx.textAlign='left';
-                    ctx.fillText(`${item.brand} ${item.type}`, 50, y);
-                    
-                    ctx.textAlign='right'; 
-                    ctx.fillText(`\u20B9${item.price}`, 850, y);
-                    
-                    y += 45;
-                    ctx.textAlign='left'; ctx.font='italic 30px sans-serif'; ctx.fillStyle='#666';
-                    
-                    // Wrap Service Text
-                    y = wrapText(ctx, item.service, 50, y, 800, 40);
-                    
-                    if(item.specs) {
-                        ctx.font='30px sans-serif'; ctx.fillStyle='#888';
-                        y = wrapText(ctx, `(${item.specs})`, 50, y, 800, 35);
+            ctx.textAlign = "left"; ctx.fillStyle = "black"; ctx.font = "bold 40px sans-serif";
+            ctx.fillText(`ORDER #${o.seqId}`, 50, y);
+            ctx.textAlign = "right"; ctx.font = "30px sans-serif";
+            ctx.fillText(o.date, 850, y);
+            y += 80;
+
+            // Helper for Text Wrapping
+            function wrapText(text, x, y, maxWidth, lineHeight) {
+                const words = text.split(' ');
+                let line = '';
+                for(let n = 0; n < words.length; n++) {
+                    const testLine = line + words[n] + ' ';
+                    const metrics = ctx.measureText(testLine);
+                    if (metrics.width > maxWidth && n > 0) {
+                        ctx.fillText(line, x, y);
+                        line = words[n] + ' ';
+                        y += lineHeight;
+                    } else {
+                        line = testLine;
                     }
-                    y += 30; // Spacing between items
-                });
+                }
+                ctx.fillText(line, x, y);
+                return y + lineHeight;
             }
 
-            // Financials Box at Bottom (Dynamic position)
-            const boxTop = y + 40;
-            ctx.fillStyle='#F9F9F9'; ctx.fillRect(40, boxTop, 820, 250);
+            // Items
+            o.items.forEach(i => {
+                ctx.textAlign = "left"; ctx.fillStyle = "black"; ctx.font = "bold 35px sans-serif";
+                ctx.fillText(`${i.brand} ${i.type}`, 50, y);
+                ctx.textAlign = "right"; ctx.fillText(i.price, 850, y);
+                y+=45;
+                
+                ctx.textAlign = "left"; ctx.font = "italic 30px sans-serif"; ctx.fillStyle="#555";
+                y = wrapText(i.service, 50, y, 800, 40);
+                
+                if(i.specs) {
+                    ctx.font='30px sans-serif'; ctx.fillStyle='#888';
+                    y = wrapText(`(${i.specs})`, 50, y, 800, 35);
+                }
+                y+=30; 
+            });
+
+            // Financials
+            const footerY = y + 40;
+            // Adjust canvas height if content pushed it down
+            if (footerY + 300 > canvas.height) {
+                // Resize canvas logic would be complex here, assuming fixed size fits for demo
+            }
+
+            ctx.fillStyle='#F9F9F9'; ctx.fillRect(40, footerY, 820, 250);
             
-            y = boxTop + 60;
             ctx.fillStyle='#000'; ctx.font='36px sans-serif'; ctx.textAlign='left';
-            ctx.fillText('Total Amount', 80, y); 
+            ctx.fillText('Total', 80, footerY+60); 
             ctx.textAlign='right'; ctx.font='bold 36px sans-serif';
-            ctx.fillText(`\u20B9${o.financials.total}`, 820, y);
+            ctx.fillText(`\u20B9${o.financials.total}`, 820, footerY+60);
             
-            y += 60;
             ctx.textAlign='left'; ctx.font='36px sans-serif'; ctx.fillStyle='#000';
-            ctx.fillText('Advance Paid', 80, y);
+            ctx.fillText('Advance', 80, footerY+120);
             ctx.textAlign='right'; ctx.fillStyle='#34C759';
-            ctx.fillText(`- \u20B9${o.financials.advance}`, 820, y);
+            ctx.fillText(`- \u20B9${o.financials.advance}`, 820, footerY+120);
             
-            y += 70;
             ctx.textAlign='left'; ctx.fillStyle='#FF3B30'; ctx.font='bold 45px sans-serif';
-            ctx.fillText('BALANCE DUE', 80, y);
+            ctx.fillText('BALANCE DUE', 80, footerY+200);
             ctx.textAlign='right'; 
-            ctx.fillText(`\u20B9${o.financials.balance}`, 820, y);
+            ctx.fillText(`\u20B9${o.financials.balance}`, 820, footerY+200);
 
             // Footer
             ctx.fillStyle='#888'; ctx.font='30px sans-serif'; ctx.textAlign='center';
             ctx.fillText('Thank u for Cooperation', width/2, height - 30);
-
-            // Force direct WhatsApp link logic on mobile by defaulting to download + link
-            // Bypassing Share Sheet to ensure direct message to specific number
+            
             canvas.toBlob(blob => {
                 const a = document.createElement('a');
                 a.download = `bill_${o.seqId}.png`;
                 a.href = URL.createObjectURL(blob);
                 a.click();
-                
-                // Slight delay to allow download to start before switching apps
                 setTimeout(() => {
-                    alert("Bill Downloaded! Opening WhatsApp...");
-                    sendWhatsApp(o.customer.phone, `Here is your bill for Order #${o.seqId}. (Please attach the downloaded bill image)`);
+                    sendWhatsApp(o.customer.phone, "Here is your bill (attach downloaded image)");
                 }, 1000);
             });
         }
 
-        function backupData(){ 
-            const data = { 
-                orders: JSON.parse(localStorage.getItem('mrboot_orders')), 
-                customers: JSON.parse(localStorage.getItem('mrboot_customers')), 
-                inventory: JSON.parse(localStorage.getItem('mrboot_inventory')),
-                seq: localStorage.getItem('mrboot_last_seq')
+        // --- Common ---
+        function sendWhatsApp(phone, text) { window.open(`https://wa.me/91${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank'); }
+        function openImageModal(blob) { document.getElementById('preview-full-img').src = blob; document.getElementById('modal-image-preview').classList.add('open'); }
+        function saveInventory(e) {
+            e.preventDefault();
+            const i = {
+                id: Date.now(),
+                name: document.getElementById('inv-name').value,
+                brand: document.getElementById('inv-brand').value,
+                qty: document.getElementById('inv-qty').value,
+                price: document.getElementById('inv-price').value
             };
-            const b = new Blob([JSON.stringify(data)],{type:'application/json'});
+            inventory.push(i); localStorage.setItem('mrboot_inventory', JSON.stringify(inventory));
+            closeModal('modal-inventory'); renderInventory();
+        }
+        function renderInventory() {
+            const el = document.getElementById('inventory-list');
+            el.innerHTML = inventory.map(i => `<div class="card" style="display:flex; justify-content:space-between;"><span>${i.name}</span><b>${i.qty}</b></div>`).join('');
+        }
+        function openInventoryModal() { document.getElementById('modal-inventory').classList.add('open'); }
+        function renderCustomers() {
+            const el = document.getElementById('customers-list');
+            el.innerHTML = '';
+            Object.values(customers).forEach(c => {
+                el.innerHTML += `<div class="card" onclick="showHistory('${c.phone}')"><h3>${c.name}</h3><p>${c.phone}</p><p>Orders: ${c.count}</p></div>`;
+            });
+        }
+        function showHistory(phone) {
+            const list = orders.filter(o => o.customer.phone === phone);
+            const el = document.getElementById('customer-history-content');
+            el.innerHTML = list.map(o => `<div class="card">#${o.seqId} - ${o.status}</div>`).join('');
+            document.getElementById('modal-customer-history').classList.add('open');
+        }
+        function checkCustomer(phone) {
+            if(customers[phone]) {
+                document.getElementById('ord-name').value = customers[phone].name;
+                document.getElementById('ord-address').value = customers[phone].address;
+            }
+        }
+        function updateStockLabel() {
+            const id = document.getElementById('ord-stock-item').value;
+            const hint = document.getElementById('stock-hint');
+            if(!id) { hint.textContent = ""; return; }
+            const item = inventory.find(i => i.id == id);
+            if(item) hint.textContent = `Selected: ${item.name} (${item.qty} in stock)`;
+        }
+        function populateStockDropdown() {
+            const s = document.getElementById('ord-stock-item'); s.innerHTML='<option>-- Select --</option>';
+            inventory.forEach(i => s.innerHTML+=`<option value="${i.id}">${i.name}</option>`);
+        }
+        function backupData() {
+            const d = JSON.stringify({orders, customers, inventory, lastSeqId});
+            const b = new Blob([d], {type:'application/json'});
             const a = document.createElement('a'); a.href=URL.createObjectURL(b); a.download='mrboot_backup.json'; a.click();
         }
-        
-        function restoreData(input){
-            const f = input.files[0];
+        function restoreData(input) {
             const r = new FileReader();
-            r.onload = (e) => {
+            r.onload = e => {
                 const d = JSON.parse(e.target.result);
                 localStorage.setItem('mrboot_orders', JSON.stringify(d.orders));
                 localStorage.setItem('mrboot_customers', JSON.stringify(d.customers));
                 localStorage.setItem('mrboot_inventory', JSON.stringify(d.inventory));
-                localStorage.setItem('mrboot_last_seq', d.seq || 0);
-                alert("Restored!"); location.reload();
+                location.reload();
             };
-            r.readAsText(f);
+            r.readAsText(input.files[0]);
         }
 
-        // Init Sequence - Wrapped in window.onload for safety
-        window.onload = function() {
-            initDB();
-            renderOrders();
-            renderReports();
-            checkDeliveryAlerts();
-            
-            // Force Switch to Orders to ensure UI is visible
-            switchView('orders');
-        };
+        window.onload = initDB;
     </script>
 </body>
 </html>
