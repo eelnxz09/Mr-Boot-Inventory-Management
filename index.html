@@ -509,11 +509,29 @@
     </div>
 
     <script type="module">
+        console.log('🚀 App starting...');
+        
+        // Enhanced error logging
+        window.addEventListener('error', (e) => {
+            console.error('❌ Global Error:', e.error);
+            alert('Error detected! Check console (F12) for details.');
+        });
+        
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('❌ Unhandled Promise Rejection:', e.reason);
+            alert('Promise error! Check console (F12) for details.');
+        });
+        
+        console.log('📦 Importing Firebase modules...');
+        
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        console.log('✅ Firebase modules imported successfully');
+
         // FIREBASE CONFIG
+        console.log('⚙️ Initializing Firebase...');
         const firebaseConfig = {
             apiKey: "AIzaSyAFyPxYstLeXFCZkoCJr8NeFRvazMeEju4",
             authDomain: "boot-7e65c.firebaseapp.com",
@@ -527,6 +545,10 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
+        console.log('✅ Firebase initialized successfully');
+        console.log('🔐 Auth object:', auth);
+        console.log('💾 Firestore object:', db);
         
         window.orders = [];
         window.inventory = [];
@@ -602,7 +624,9 @@
         };
 
         onAuthStateChanged(auth, user => { 
+            console.log('🔄 Auth state changed:', user ? user.email : 'No user');
             if(user) { 
+                console.log('✅ User logged in:', user.email);
                 document.getElementById('login-screen').classList.add('hidden'); 
                 document.getElementById('db-status').style.background = '#34C759'; 
                 document.getElementById('user-email-display').innerText = user.email;
@@ -611,11 +635,17 @@
                 hideLoading();
                 
                 const loadTimeout = setTimeout(() => {
+                    console.log('⏰ Load timeout reached');
                     hideLoading();
                 }, 10000); 
                 
-                initListeners(() => clearTimeout(loadTimeout)); 
+                console.log('📡 Initializing listeners...');
+                initListeners(() => {
+                    console.log('✅ Listeners initialized');
+                    clearTimeout(loadTimeout);
+                }); 
             } else {
+                console.log('⚠️ No user - showing login screen');
                 document.getElementById('login-screen').classList.remove('hidden');
                 hideLoading();
             }
