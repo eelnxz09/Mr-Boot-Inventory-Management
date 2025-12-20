@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mr Boot Manager (Online)</title>
+    <title>Mr Boot Manager v3.0</title>
     <!-- HEIC Conversion Library -->
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <style>
@@ -67,7 +67,7 @@
             padding: 0 16px; border-bottom: 1px solid rgba(0,0,0,0.05); z-index: 100;
         }
         .header-logo { height: 45px; width: auto; object-fit: contain; }
-        .app-title h1 { font-size: 20px; font-weight: 700; margin: 0; color: var(--primary); letter-spacing: -0.5px; }
+        .app-title h1 { font-size: 18px; font-weight: 700; margin: 0; color: var(--primary); letter-spacing: -0.5px; }
         
         main { 
             flex: 1; 
@@ -188,7 +188,7 @@
     <!-- GLOBAL ERROR HANDLER -->
     <script>
         window.onerror = function(msg, url, line) {
-            // alert("App Error: " + msg + "\nLine: " + line);
+            // console.error("App Error: " + msg + "\nLine: " + line);
         };
     </script>
 </head>
@@ -230,7 +230,7 @@
             <!-- Logo -->
             <img id="header-logo" src="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png" class="header-logo" onerror="this.style.display='none'; document.getElementById('header-text').style.display='block';">
             <div id="header-text" class="app-title" style="display:none;">
-                <h1>Mr Boot</h1>
+                <h1>Mr Boot v3.0</h1>
                 <span style="font-size:10px; color:var(--text-sub);">Inventory & Service</span>
             </div>
         </div>
@@ -314,7 +314,7 @@
                 <p style="font-size:12px; color:#666;">Data is securely stored in Firebase.</p>
                 <p style="font-size:11px; color:var(--info);">Network: <span id="net-status">Unknown</span></p>
                 <button class="btn btn-primary" onclick="window.testConnection()">Test Database Connection</button>
-                <button class="btn btn-outline" onclick="location.reload()">Refresh App</button>
+                <button class="btn btn-outline" onclick="window.forceReload()">Force Update / Clear Cache</button>
             </div>
         </section>
     </main>
@@ -420,6 +420,16 @@
         </div>
     </div>
 
+    <!-- GALLERY UPLOAD -->
+    <div id="modal-gallery-upload" class="modal">
+        <div class="modal-header"><h3>Upload to Gallery</h3><button class="close-btn" onclick="window.closeModal('modal-gallery-upload')">&times;</button></div>
+        <div class="modal-body">
+            <input type="text" id="gal-caption" placeholder="Work Description / Name">
+            <input type="file" id="gal-image" accept="image/*">
+            <button class="btn btn-primary" onclick="window.saveGalleryItem()">Upload</button>
+        </div>
+    </div>
+
     <div id="modal-inventory" class="modal">
         <div class="modal-header"><h3>Add Item</h3><button class="close-btn" onclick="window.closeModal('modal-inventory')">&times;</button></div>
         <div class="modal-body">
@@ -442,16 +452,6 @@
         <div class="modal-header"><h3>View</h3><button class="close-btn" onclick="window.closeModal('modal-image-preview')">&times;</button></div>
         <div class="modal-body" style="background:#000; display:flex; align-items:center; justify-content:center;">
             <img id="preview-full-img" style="max-width:100%; max-height:80vh;">
-        </div>
-    </div>
-
-    <!-- GALLERY UPLOAD MODAL -->
-    <div id="modal-gallery-upload" class="modal">
-        <div class="modal-header"><h3>Upload to Gallery</h3><button class="close-btn" onclick="window.closeModal('modal-gallery-upload')">&times;</button></div>
-        <div class="modal-body">
-            <input type="text" id="gal-caption" placeholder="Caption (e.g., Before & After)">
-            <input type="file" id="gal-image" accept="image/*">
-            <button class="btn btn-primary" onclick="window.saveGalleryItem()">Upload</button>
         </div>
     </div>
 
@@ -500,6 +500,18 @@
         };
         window.addEventListener('online', updateNetworkStatus);
         window.addEventListener('offline', updateNetworkStatus);
+        
+        // Force Reload for Updates
+        window.forceReload = () => {
+            if('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => caches.delete(name));
+                    window.location.reload(true);
+                });
+            } else {
+                window.location.reload(true);
+            }
+        };
 
         // --- Auth ---
         window.loginWithEmail = async () => {
@@ -963,9 +975,7 @@
         }
         window.sendWhatsApp = (phone, text) => window.open(`https://wa.me/91${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
         window.openImageModal = (src) => { document.getElementById('preview-full-img').src=src; document.getElementById('modal-image-preview').classList.add('open'); };
-        window.backupData = () => alert("Online mode is active. Data is already in cloud.");
-        window.restoreData = () => alert("Online mode is active. Data is pulled from cloud.");
-
+        
         window.renderReports = () => {
             let rev=0, pend=0, prof=0;
             window.orders.forEach(o => { 
@@ -1037,384 +1047,169 @@
             document.getElementById('modal-customer-history').classList.add('open');
         }
 
-        // ============================================
-        // NEW BILL GENERATION (MATCHING IMAGE DESIGN)
-        // ============================================
+        // Bill Logic
         window.shareBill = async (id) => {
             const o = window.orders.find(x => x.id === id);
             const canvas = document.getElementById('billCanvas');
             const ctx = canvas.getContext('2d');
+            const width = 900;
             
-            // Set canvas size to match invoice design (portrait orientation)
-            const width = 1080;
-            const height = 1920;
-            canvas.width = width;
+            // Dynamic Height Calc
+            let dynamicHeight = 300;
+            if(o.items) {
+                dynamicHeight = 0;
+                o.items.forEach(item => {
+                    dynamicHeight += 120; // Rough item height
+                });
+            }
+            // Increase base height to ensure footer fits
+            const height = 1500 + dynamicHeight; 
+            canvas.width = width; 
             canvas.height = height;
             
-            // Fill white background
-            ctx.fillStyle = "white";
-            ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = "white"; ctx.fillRect(0,0,width,height);
             
-            let y = 80;
-            
-            // ===== HEADER SECTION =====
-            ctx.fillStyle = "#000000";
-            ctx.font = "bold 56px Arial";
-            ctx.textAlign = "left";
-            ctx.fillText("Mr Boot Shoe Laundry & Repair", 60, y);
-            
-            // Logo on right side
+            // Header
             const logoImg = document.getElementById('logo-img-res');
-            try {
-                if(logoImg.complete && logoImg.naturalWidth > 0) {
-                    const logoSize = 120;
-                    ctx.drawImage(logoImg, width - logoSize - 60, 40, logoSize, logoSize);
-                }
-            } catch(e) { console.log("Logo error", e); }
+            let logoDrawn = false;
+            try { if(logoImg.complete) { ctx.drawImage(logoImg, width/2 - 150, 50, 300, 300 * (logoImg.height/logoImg.width)); logoDrawn=true; }} catch(e){}
+            if(!logoDrawn) { ctx.fillStyle = "#4E342E"; ctx.font = "bold 60px sans-serif"; ctx.textAlign = "center"; ctx.fillText("MR BOOT", width/2, 200); }
+            ctx.fillStyle="#4E342E"; ctx.font = "30px sans-serif"; ctx.textAlign="center"; ctx.fillText("SHOE LAUNDRY", width/2, 380);
             
-            y += 80;
-            
-            // "Service Invoice" heading
-            ctx.font = "48px Arial";
-            ctx.fillText("Service Invoice", 60, y);
-            
-            y += 80;
-            
-            // Order number
-            ctx.font = "bold 42px Arial";
-            ctx.fillText(`Order number: #${o.seqId}`, 60, y);
-            
-            y += 80;
-            
-            // ===== INFO BOXES (Due Date, Current Date, Payment Status) =====
-            const boxY = y;
-            const boxHeight = 120;
-            const boxWidth = (width - 160) / 3;
-            
-            // Box backgrounds
-            ctx.fillStyle = "#F5F5F5";
-            ctx.fillRect(60, boxY, boxWidth, boxHeight);
-            ctx.fillRect(60 + boxWidth + 20, boxY, boxWidth, boxHeight);
-            ctx.fillRect(60 + (boxWidth + 20) * 2, boxY, boxWidth, boxHeight);
-            
-            // Box borders
-            ctx.strokeStyle = "#DDDDDD";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(60, boxY, boxWidth, boxHeight);
-            ctx.strokeRect(60 + boxWidth + 20, boxY, boxWidth, boxHeight);
-            ctx.strokeRect(60 + (boxWidth + 20) * 2, boxY, boxWidth, boxHeight);
-            
-            // Box text
-            ctx.fillStyle = "#000000";
-            ctx.font = "28px Arial";
-            ctx.textAlign = "center";
-            
-            // Due Date
-            ctx.fillText("Due Date:", 60 + boxWidth/2, boxY + 45);
-            ctx.font = "bold 32px Arial";
-            ctx.fillText(o.deliveryDate || "N/A", 60 + boxWidth/2, boxY + 85);
-            
-            // Current Date & Time
-            ctx.font = "28px Arial";
-            const now = new Date();
-            const dateStr = now.toLocaleDateString();
-            const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-            ctx.fillText("Current Date & Time:", 60 + boxWidth + 20 + boxWidth/2, boxY + 45);
-            ctx.font = "bold 32px Arial";
-            ctx.fillText(`${dateStr}, ${timeStr}`, 60 + boxWidth + 20 + boxWidth/2, boxY + 85);
-            
-            // Payment Status
-            ctx.font = "28px Arial";
-            ctx.fillText("Payment Status:", 60 + (boxWidth + 20) * 2 + boxWidth/2, boxY + 45);
-            ctx.font = "bold 32px Arial";
-            ctx.fillStyle = o.financials.balance > 0 ? "#FF3B30" : "#34C759";
-            ctx.fillText(o.financials.balance > 0 ? "Pending" : "Paid", 60 + (boxWidth + 20) * 2 + boxWidth/2, boxY + 85);
-            
-            y = boxY + boxHeight + 60;
-            
-            // ===== MAIN PHOTO =====
-            const photoY = y;
-            const photoHeight = 500;
-            const photoWidth = width - 120;
-            
-            // Photo background
-            ctx.fillStyle = "#F5F5F5";
-            ctx.roundRect(60, photoY, photoWidth, photoHeight, 20);
-            ctx.fill();
-            
-            // Try to load main photo
+            // Try fetch Main Photo
             try {
                 const q = query(collection(db, "images"), where("orderId", "==", String(id)));
                 const snap = await getDocs(q);
                 let mainBlob = null;
-                
+                // Priority: 'main' > 'intake'
                 snap.forEach(doc => {
                     const d = doc.data();
                     if(d.type === 'main') mainBlob = d.blob;
-                    else if(d.type === 'intake' && !mainBlob) mainBlob = d.blob;
+                    if(d.type === 'intake' && !mainBlob) mainBlob = d.blob; 
                 });
-                
+
                 if(mainBlob) {
-                    const imgObj = new Image();
-                    imgObj.src = mainBlob;
+                    const imgObj = new Image(); imgObj.src = mainBlob;
                     await new Promise(r => imgObj.onload = r);
-                    
-                    // Calculate aspect ratio fit
-                    const imgAspect = imgObj.width / imgObj.height;
-                    const boxAspect = photoWidth / photoHeight;
-                    let drawWidth, drawHeight, drawX, drawY;
-                    
-                    if(imgAspect > boxAspect) {
-                        drawWidth = photoWidth - 40;
-                        drawHeight = drawWidth / imgAspect;
-                        drawX = 60 + 20;
-                        drawY = photoY + (photoHeight - drawHeight) / 2;
-                    } else {
-                        drawHeight = photoHeight - 40;
-                        drawWidth = drawHeight * imgAspect;
-                        drawX = 60 + (photoWidth - drawWidth) / 2;
-                        drawY = photoY + 20;
-                    }
-                    
-                    ctx.save();
-                    ctx.beginPath();
-                    ctx.roundRect(60, photoY, photoWidth, photoHeight, 20);
-                    ctx.clip();
-                    ctx.drawImage(imgObj, drawX, drawY, drawWidth, drawHeight);
-                    ctx.restore();
+                    const drawH = 500 * (imgObj.height/imgObj.width);
+                    ctx.drawImage(imgObj, width/2-250, 420, 500, drawH);
                 }
-            } catch(e) {
-                console.log("Photo load error", e);
+            } catch(e) { console.log("Bill photo error", e); }
+
+            let y = 1000;
+            ctx.textAlign = "left"; ctx.fillStyle = "black"; ctx.font = "bold 40px sans-serif";
+            ctx.fillText(`ORDER #${o.seqId}`, 50, y);
+            ctx.textAlign = "right"; ctx.font = "30px sans-serif";
+            ctx.fillText(o.date, 850, y); 
+            y+=50;
+            if(o.deliveryDate) {
+                ctx.textAlign="left"; ctx.font="bold 25px sans-serif"; ctx.fillStyle="#E65100";
+                ctx.fillText(`Due: ${o.deliveryDate}`, 50, y);
             }
+            y+=80;
             
-            y = photoY + photoHeight + 60;
-            
-            // ===== SERVICE TABLE =====
-            ctx.fillStyle = "#000000";
-            ctx.textAlign = "left";
-            
-            // Table header
-            const tableX = 60;
-            const colWidths = [450, 150, 150, 200];
-            
-            ctx.fillStyle = "#F5F5F5";
-            ctx.fillRect(tableX, y, width - 120, 60);
-            
-            ctx.fillStyle = "#000000";
-            ctx.font = "bold 32px Arial";
-            ctx.fillText("Item / Service Description", tableX + 20, y + 40);
-            ctx.fillText("Rate", tableX + colWidths[0], y + 40);
-            ctx.fillText("Quantity", tableX + colWidths[0] + colWidths[1], y + 40);
-            ctx.textAlign = "right";
-            ctx.fillText("Amount", width - 80, y + 40);
-            ctx.textAlign = "left";
-            
-            y += 60;
-            
-            // Draw horizontal line
-            ctx.strokeStyle = "#DDDDDD";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(tableX, y);
-            ctx.lineTo(width - 60, y);
-            ctx.stroke();
-            
-            y += 30;
-            
-            // Table rows - items
-            ctx.font = "32px Arial";
-            if(o.items && o.items.length > 0) {
-                o.items.forEach(item => {
-                    const rowHeight = 80;
+            // Text Wrap Helper
+            function wrapText(text, x, y, maxWidth, lineHeight) {
+                const words = text.split(' ');
+                let line = '';
+                for(let n = 0; n < words.length; n++) {
+                    const testLine = line + words[n] + ' ';
+                    const metrics = ctx.measureText(testLine);
+                    if (metrics.width > maxWidth && n > 0) {
+                        ctx.fillText(line, x, y);
+                        line = words[n] + ' ';
+                        y += lineHeight;
+                    } else {
+                        line = testLine;
+                    }
+                }
+                ctx.fillText(line, x, y);
+                return y + lineHeight;
+            }
+
+            if(o.items) {
+                o.items.forEach(i => {
+                    ctx.textAlign="left"; ctx.fillStyle="black"; ctx.font="bold 35px sans-serif"; 
+                    ctx.fillText(`${i.brand} ${i.type}`, 50, y);
                     
-                    // Item name with service
-                    ctx.fillStyle = "#000000";
-                    const itemText = `${item.type} (${item.service.split(',')[0]})`;
-                    ctx.fillText(itemText, tableX + 20, y + 25);
+                    ctx.textAlign="right"; ctx.fillText(i.price, 850, y); 
+                    y+=45;
                     
-                    // Rate
-                    ctx.fillText(`₹${item.price}`, tableX + colWidths[0], y + 25);
+                    ctx.textAlign="left"; ctx.font="italic 30px sans-serif"; ctx.fillStyle="#555"; 
+                    y = wrapText(i.service, 50, y, 800, 40);
                     
-                    // Quantity (always 1 for now)
-                    ctx.fillText("1", tableX + colWidths[0] + colWidths[1] + 40, y + 25);
-                    
-                    // Amount
-                    ctx.textAlign = "right";
-                    ctx.fillText(`₹${item.price}`, width - 80, y + 25);
-                    ctx.textAlign = "left";
-                    
-                    y += rowHeight;
-                    
-                    // Draw line
-                    ctx.strokeStyle = "#EEEEEE";
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    ctx.moveTo(tableX, y);
-                    ctx.lineTo(width - 60, y);
-                    ctx.stroke();
+                    if(i.specs) {
+                       ctx.font="25px sans-serif"; ctx.fillStyle="#888";
+                       y = wrapText(`(${i.specs})`, 50, y, 800, 35);
+                    }
+                    y+=40; 
                 });
             }
+
+            const footerY = y + 50;
+            ctx.fillStyle='#F9F9F9'; ctx.fillRect(40, footerY, 820, 320); // Expanded footer
+            ctx.fillStyle='#000'; ctx.font='36px sans-serif'; 
             
-            y += 40;
+            let fy = footerY + 60;
+            ctx.textAlign='left'; ctx.fillText('Total', 80, fy); ctx.textAlign='right'; ctx.fillText(o.financials.total, 820, fy);
+            fy+=60;
+            ctx.textAlign='left'; ctx.fillText('Advance', 80, fy); ctx.textAlign='right'; ctx.fillText(o.financials.advance, 820, fy);
+            fy+=60;
+            ctx.textAlign='left'; ctx.fillText('Payment Mode', 80, fy); ctx.textAlign='right'; ctx.font='30px sans-serif'; ctx.fillText(o.financials.mode || 'Cash', 820, fy);
+            fy+=80;
+            ctx.textAlign='left'; ctx.fillStyle='#FF3B30'; ctx.font='bold 45px sans-serif';
+            ctx.fillText('BALANCE', 80, fy); ctx.textAlign='right'; ctx.fillText(o.financials.balance, 820, fy);
+
+            ctx.fillStyle='#888'; ctx.font='30px sans-serif'; ctx.textAlign='center';
+            // Adjusted footer position to be relative to canvas height
+            ctx.fillText('Thank u for Cooperation', width/2, height - 50);
             
-            // ===== BILLING SUMMARY BOX =====
-            const summaryBoxY = y;
-            const summaryBoxHeight = 280;
-            const summaryBoxWidth = 500;
-            const summaryBoxX = width - 60 - summaryBoxWidth;
-            
-            // Box background
-            ctx.fillStyle = "#FFF5F5";
-            ctx.strokeStyle = "#FF3B30";
-            ctx.lineWidth = 3;
-            ctx.roundRect(summaryBoxX, summaryBoxY, summaryBoxWidth, summaryBoxHeight, 15);
-            ctx.fill();
-            ctx.stroke();
-            
-            // Box content
-            let summaryY = summaryBoxY + 50;
-            
-            ctx.fillStyle = "#000000";
-            ctx.font = "bold 36px Arial";
-            ctx.textAlign = "left";
-            ctx.fillText("Billing Summary:", summaryBoxX + 30, summaryY);
-            
-            summaryY += 50;
-            ctx.font = "32px Arial";
-            
-            // Subtotal
-            ctx.fillText("Subtotal:", summaryBoxX + 30, summaryY);
-            ctx.textAlign = "right";
-            ctx.fillText(`₹${o.financials.itemTotal || o.financials.total}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
-            
-            summaryY += 45;
-            ctx.textAlign = "left";
-            
-            // Advance Paid
-            ctx.fillText("Advance Paid:", summaryBoxX + 30, summaryY);
-            ctx.textAlign = "right";
-            ctx.fillText(`₹${o.financials.advance}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
-            
-            summaryY += 45;
-            ctx.textAlign = "left";
-            
-            // Balance Amount
-            ctx.fillText("Balance Amount:", summaryBoxX + 30, summaryY);
-            ctx.textAlign = "right";
-            ctx.fillStyle = "#FF3B30";
-            ctx.fillText(`₹${o.financials.balance}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
-            
-            // Draw separator line
-            summaryY += 20;
-            ctx.strokeStyle = "#DDDDDD";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(summaryBoxX + 30, summaryY);
-            ctx.lineTo(summaryBoxX + summaryBoxWidth - 30, summaryY);
-            ctx.stroke();
-            
-            summaryY += 35;
-            ctx.textAlign = "left";
-            
-            // Total Amount
-            ctx.fillStyle = "#000000";
-            ctx.font = "bold 38px Arial";
-            ctx.fillText("Total Amount:", summaryBoxX + 30, summaryY);
-            ctx.textAlign = "right";
-            ctx.fillText(`₹${o.financials.total}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
-            
-            summaryY += 40;
-            ctx.textAlign = "center";
-            ctx.font = "28px Arial";
-            ctx.fillStyle = "#666666";
-            ctx.fillText(`Payment Mode: ${o.financials.mode || 'Cash / UPI / Card'}`, summaryBoxX + summaryBoxWidth/2, summaryY);
-            
-            // ===== FOOTER =====
-            y = height - 250;
-            
-            ctx.fillStyle = "#666666";
-            ctx.font = "28px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText('Terms & Conditions: "No guarantee on color restoration. No warranty on white shoes.', width/2, y);
-            y += 40;
-            ctx.fillText('Pre-existing damages are not covered."', width/2, y);
-            
-            y += 80;
-            ctx.fillStyle = "#000000";
-            ctx.font = "32px Arial";
-            ctx.fillText("Thank you for choosing Mr Boot Shoe Laundry & Repair!", width/2, y);
-            
-            y += 60;
-            ctx.fillStyle = "#34C759";
-            ctx.font = "bold 36px Arial";
-            ctx.fillText("Contact: +91 9028983659", width/2, y);
-            
-            // QR Code placeholder (you can add actual QR generation if needed)
-            const qrSize = 100;
-            const qrX = width - 60 - qrSize;
-            const qrY = height - 180;
-            ctx.fillStyle = "#000000";
-            ctx.fillRect(qrX, qrY, qrSize, qrSize);
-            ctx.fillStyle = "#FFFFFF";
-            ctx.font = "14px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText("Scan for", qrX + qrSize/2, qrY + qrSize + 20);
-            ctx.fillText("Payment/Details", qrX + qrSize/2, qrY + qrSize + 40);
-            
-            // Download the bill
             canvas.toBlob(blob => {
                 const a = document.createElement('a');
-                a.download = `invoice_${o.seqId}.png`;
+                a.download = `bill_${o.seqId}.png`;
                 a.href = URL.createObjectURL(blob);
                 a.click();
-                setTimeout(() => {
-                    if(confirm("Bill Downloaded. Open WhatsApp now?")) {
-                        window.sendWhatsApp(o.customer.phone, "Here is your service invoice. Please check the attached image.");
-                    }
-                }, 1000);
+                setTimeout(() => { if(confirm("Bill Downloaded. Open WhatsApp now?")) window.sendWhatsApp(o.customer.phone, "Here is your bill (attach image)"); }, 1000);
             });
         };
 
-        // Stub functions for features not yet implemented
+        // --- BULK & SELECTION ---
         window.toggleSelectMode = () => {
             window.isSelectMode = !window.isSelectMode;
-            document.getElementById('btn-select-mode').innerText = window.isSelectMode ? "Cancel" : "Select";
             window.selectedOrders.clear();
-            document.getElementById('bulk-actions-bar').classList.toggle('visible', false);
-            window.renderOrders();
-        };
-        
-        window.toggleOrderSelection = (id) => {
-            if(window.selectedOrders.has(id)) {
-                window.selectedOrders.delete(id);
+            const btn = document.getElementById('btn-select-mode');
+            const bar = document.getElementById('bulk-actions-bar');
+            
+            if (window.isSelectMode) {
+                btn.innerText = "Cancel";
+                bar.classList.add('visible');
             } else {
-                window.selectedOrders.add(id);
+                btn.innerText = "Select";
+                bar.classList.remove('visible');
             }
-            document.getElementById('bulk-count').innerText = window.selectedOrders.size;
-            document.getElementById('bulk-actions-bar').classList.toggle('visible', window.selectedOrders.size > 0);
             window.renderOrders();
         };
-        
-        window.performBulkAction = async (action) => {
-            if(window.selectedOrders.size === 0) return;
-            
-            if(action === 'Ready') {
-                if(!confirm(`Mark ${window.selectedOrders.size} orders as Ready?`)) return;
-                for(const id of window.selectedOrders) {
-                    await updateDoc(doc(db, "orders", id), { status: 'Ready' });
-                }
-            } else if(action === 'Delete') {
-                if(!confirm(`Delete ${window.selectedOrders.size} orders permanently?`)) return;
-                for(const id of window.selectedOrders) {
-                    await deleteDoc(doc(db, "orders", id));
-                }
-            }
-            
-            window.selectedOrders.clear();
-            window.isSelectMode = false;
-            document.getElementById('btn-select-mode').innerText = "Select";
-            document.getElementById('bulk-actions-bar').classList.remove('visible');
+
+        window.toggleOrderSelection = (id) => {
+            if (window.selectedOrders.has(id)) window.selectedOrders.delete(id);
+            else window.selectedOrders.add(id);
+            document.getElementById('bulk-count').innerText = window.selectedOrders.size;
             window.renderOrders();
+        };
+
+        window.performBulkAction = async (action) => {
+            if (window.selectedOrders.size === 0) return alert("No orders selected");
+            if (!confirm(`${action} ${window.selectedOrders.size} orders?`)) return;
+
+            showLoading("Processing...");
+            try {
+                const updates = Array.from(window.selectedOrders).map(async (id) => {
+                    if (action === 'Delete') await deleteDoc(doc(db, "orders", id));
+                    else if (action === 'Ready') await updateDoc(doc(db, "orders", id), { status: 'Ready' });
+                });
+                await Promise.all(updates);
+                window.toggleSelectMode(); 
+            } catch (e) { alert("Bulk action failed: " + e.message); } finally { hideLoading(); }
         };
     </script>
 </body>
