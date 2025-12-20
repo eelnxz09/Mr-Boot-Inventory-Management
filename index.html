@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mr Boot Manager (Online)</title>
+    <title>Mr Boot Manager</title>
     <style>
         :root {
-            /* Palette - Premium Leather & Modern UI */
             --primary: #4E342E; 
             --primary-dark: #281A16;
             --accent: #D7CCC8;
@@ -43,14 +42,6 @@
             color: white; padding: 24px; transition: transform 0.3s ease-in-out;
         }
         #login-screen.hidden { transform: translateY(-100%); }
-        .user-card {
-            background: white; color: var(--text-main); width: 100%; max-width: 320px;
-            padding: 20px; border-radius: 20px; margin-bottom: 16px;
-            display: flex; align-items: center; gap: 16px; cursor: pointer;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: transform 0.1s;
-        }
-        .user-card:active { transform: scale(0.98); }
 
         /* Layout */
         header {
@@ -114,10 +105,11 @@
         .btn-primary { background: var(--primary); color: white; }
         .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
         .btn-whatsapp { background: #25D366; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
         
         .flex-row { display: flex; gap: 10px; }
         .hidden { display: none !important; }
-        .img-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 1px solid #ddd; margin-right: 8px; }
+        .img-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 1px solid #ddd; margin-right: 8px; cursor: pointer; }
         
         /* Modals */
         .modal {
@@ -135,7 +127,7 @@
         .item-row { background: white; border: 1px solid #eee; padding: 10px; border-radius: 10px; margin-bottom: 10px; position: relative; }
         .remove-item { position: absolute; top: 5px; right: 5px; color: red; background: none; border: none; font-size: 20px; }
         
-        /* Service Selection Styling (Tick Mark) */
+        /* Service Selection */
         .service-option-label {
             display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; 
             border-bottom: 1px solid #eee; cursor: pointer; background: white; transition: background 0.2s;
@@ -157,7 +149,6 @@
         <h1 style="font-size:32px; margin-bottom:40px;">Mr Boot</h1>
         <div class="card" style="width:100%; max-width:320px; background:white; color:#333;">
             <h3 style="margin-top:0;">Admin Login</h3>
-            <p style="font-size:12px; color:#666;">Data syncs automatically across devices.</p>
             <input type="password" id="login-pin" placeholder="Enter PIN (Default: 1234)" style="margin-bottom:16px; border:1px solid #ddd;">
             <button class="btn btn-primary" onclick="attemptLogin()">Enter Shop</button>
         </div>
@@ -166,7 +157,6 @@
     <!-- HEADER -->
     <header>
         <div style="display:flex; align-items:center; gap:10px;">
-            <!-- Logo -->
             <img id="header-logo" src="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png" class="header-logo" onerror="this.style.display='none'; document.getElementById('header-text').style.display='block';">
             <div id="header-text" class="app-title" style="display:none;">
                 <h1>Mr Boot</h1>
@@ -176,7 +166,7 @@
         <div id="db-status" style="width:8px; height:8px; border-radius:50%; background:#ccc;"></div>
     </header>
 
-    <!-- HIDDEN CANVAS -->
+    <!-- HIDDEN RESOURCES -->
     <canvas id="billCanvas" style="display:none;"></canvas>
     <img id="logo-img-res" src="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png" crossorigin="anonymous" style="display:none;">
 
@@ -223,10 +213,9 @@
                 <p>Pending: <b id="rep-pending" style="color:var(--danger)">0</b></p>
                 <p>Profit (Net): <b id="rep-profit" style="color:var(--success)">0</b></p>
             </div>
-            
             <div class="card">
-                <h3>System Status</h3>
-                <p style="font-size:12px; color:#666;">Data is automatically synced to Firebase Cloud.</p>
+                <h3>Cloud Status</h3>
+                <p style="font-size:12px; color:#666;">Data Sync: <span style="color:#34C759; font-weight:bold;">ONLINE</span></p>
                 <button class="btn btn-outline" onclick="location.reload()">Refresh App</button>
             </div>
         </section>
@@ -252,7 +241,7 @@
         </a>
     </nav>
 
-    <!-- ORDER MODAL -->
+    <!-- MODALS -->
     <div id="modal-order" class="modal">
         <div class="modal-header"><h3>New Order</h3><button class="close-btn" onclick="closeModal('modal-order')">&times;</button></div>
         <div class="modal-body">
@@ -263,35 +252,31 @@
                     <input type="text" id="ord-name" placeholder="Name" required>
                     <textarea id="ord-address" rows="2" placeholder="Address"></textarea>
                 </div>
-
                 <div style="background:#FFF3E0; padding:10px; border-radius:10px; margin-bottom:16px;">
                     <label style="color:#E65100;">Due Date</label>
                     <input type="date" id="ord-date-delivery" style="margin:0; background:white;">
                 </div>
-
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <label>Items</label>
                     <button type="button" class="btn btn-primary" style="width:auto; padding:6px 12px; margin:0; font-size:12px;" onclick="addOrderItem()">+ Add Shoe</button>
                 </div>
                 <div id="order-items-container"></div>
 
-                <label style="margin-top:16px;">Photos & Add-ons</label>
+                <label style="margin-top:16px;">Photos</label>
                 <div style="background:#E5F1FF; padding:12px; border-radius:10px; margin-bottom:12px; border: 1px dashed #007AFF;">
-                    <label style="color:#007AFF; font-weight:bold;">📸 Upload Main Photo (For Bill)</label>
+                    <label style="color:#007AFF; font-weight:bold;">📸 Main Photo (For Bill)</label>
                     <input type="file" id="ord-main-image" accept="image/*" style="margin-bottom:0;">
                 </div>
                 <label>Additional Photos</label>
-                <input type="file" id="ord-images" multiple accept="image/*" style="margin-top:0;">
+                <input type="file" id="ord-images" multiple accept="image/*">
 
                 <select id="ord-stock-item" style="margin-top:12px;"><option value="">-- Select Add-on --</option></select>
-
                 <label style="margin-top:16px;">Delivery</label>
                 <select id="ord-delivery-mode" onchange="toggleDeliveryFields()"><option value="Walk-in">Walk-in</option><option value="Pickup">Pickup & Drop</option></select>
                 <div id="delivery-fields" class="hidden">
                     <input type="number" id="ord-porter-cost" placeholder="Porter Cost (Expense)">
                     <input type="number" id="ord-delivery-charge" placeholder="Delivery Charge (Income)" oninput="calcBalance()">
                 </div>
-
                 <label>Billing</label>
                 <div class="flex-row">
                     <input type="number" id="ord-item-total" placeholder="Subtotal" readonly style="background:#eee;">
@@ -301,13 +286,11 @@
                     Balance: <span id="ord-balance" style="color:var(--danger)">0</span>
                 </div>
                 <select id="ord-paymode"><option>Cash</option><option>UPI</option><option>Card</option></select>
-
                 <button type="button" class="btn btn-primary" id="save-order-btn" onclick="saveOrder(event)">Save Order</button>
             </form>
         </div>
     </div>
 
-    <!-- OTHER MODALS -->
     <div id="modal-service-selector" class="modal" style="z-index: 3100;">
         <div class="modal-header"><h3>Select Services</h3><button class="close-btn" onclick="closeModal('modal-service-selector')">&times;</button></div>
         <div class="modal-body" id="service-options-container" style="padding:0;"></div>
@@ -363,8 +346,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAFyPxYstLeXFCZkoCJr8NeFRvazMeEju4",
             authDomain: "boot-7e65c.firebaseapp.com",
@@ -375,71 +359,25 @@
             measurementId: "G-3ZXFKPXJPQ"
         };
         
-        // We use a specific path to ensure no permission issues if rules are restrictive
-        // But for your own project, root collections are fine. I'll use root for simplicity.
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // Global variables exposed for HTML event handlers
+        // Globals
         window.orders = [];
         window.inventory = [];
         window.customers = {};
-        
         let pendingCompleteId, viewingOrderId, currentServiceInput;
         const REVIEW_LINK = "https://g.page/r/Ce0M0864Elt6EBE/review";
         const ALL_SERVICES = ["Standard Laundry", "Premium Deep Clean", "Sole Pasting", "Net Change", "Sole Change", "Heel Change", "Patch Work", "Grip Rubber", "Grip TPR", "Bag Chain Change", "Tongue Change", "Insole Change", "Colour Dye", "Repair", "Other"];
 
-        // --- AUTH ---
         window.attemptLogin = async () => {
             const p = document.getElementById('login-pin').value;
             if(p !== "1234") return alert("Wrong PIN");
-            try {
-                await signInAnonymously(auth);
-            } catch(e) { alert("Login error: " + e.message); }
+            try { await signInAnonymously(auth); } catch(e) { alert("Login error: " + e.message); }
         };
 
-        onAuthStateChanged(auth, user => {
-            if(user) {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('db-status').style.background = '#34C759';
-                initListeners();
-            }
-        });
-
-        function initListeners() {
-            // Orders Listener
-            onSnapshot(collection(db, "orders"), (snap) => {
-                window.orders = [];
-                snap.forEach(doc => window.orders.push({id: doc.id, ...doc.data()}));
-                // Sort Descending locally
-                window.orders.sort((a,b) => b.timestamp - a.timestamp);
-                
-                // Build Customers
-                window.customers = {};
-                window.orders.forEach(o => {
-                    const p = o.customer.phone;
-                    if(!window.customers[p]) window.customers[p] = { name: o.customer.name, phone: p, count: 0, spend: 0 };
-                    window.customers[p].count++;
-                    window.customers[p].spend += o.financials.total;
-                });
-                
-                renderOrders();
-                renderReports();
-                renderCustomers();
-                if(viewingOrderId) openViewOrder(viewingOrderId);
-            });
-
-            // Inventory Listener
-            onSnapshot(collection(db, "inventory"), (snap) => {
-                window.inventory = [];
-                snap.forEach(doc => window.inventory.push({id: doc.id, ...doc.data()}));
-                renderInventory();
-                populateStockDropdown();
-            });
-        }
-
-        // --- Image Helpers ---
+        // Compress
         const compressImage = (file) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -457,22 +395,23 @@
                         ctx.drawImage(img,0,0,w,h);
                         resolve(canvas.toDataURL('image/jpeg', 0.6));
                     };
+                    img.onerror = () => reject(new Error("Img Error"));
                 };
                 reader.onerror = reject;
             });
         };
 
-        const uploadImages = async (orderId, files, type) => {
-            const uploadPromises = Array.from(files).map(async (file) => {
-                const base64 = await compressImage(file);
-                await addDoc(collection(db, "images"), {
-                    orderId, type, blob: base64, timestamp: Date.now()
-                });
-            });
-            await Promise.all(uploadPromises);
+        const uploadImages = async (orderId, files, type, btn) => {
+            for (let i = 0; i < files.length; i++) {
+                try {
+                    if (btn) btn.innerText = `Uploading ${i+1}/${files.length}...`;
+                    const base64 = await compressImage(files[i]);
+                    await addDoc(collection(db, "images"), { orderId, type, blob: base64, timestamp: Date.now() });
+                } catch (e) { console.error(e); }
+            }
         };
 
-        // --- Logic ---
+        // --- GLOBAL FUNCTIONS ---
         window.saveOrder = async (e) => {
             e.preventDefault();
             const btn = document.getElementById('save-order-btn');
@@ -491,12 +430,8 @@
             btn.disabled = true; btn.innerText = "Syncing...";
             
             try {
-                // Find max seq
                 let maxSeq = 0;
-                window.orders.forEach(o => { 
-                    const s = parseInt(o.seqId); 
-                    if(!isNaN(s) && s > maxSeq) maxSeq = s; 
-                });
+                window.orders.forEach(o => { const s = parseInt(o.seqId); if(!isNaN(s) && s > maxSeq) maxSeq = s; });
                 const seqId = String(maxSeq + 1).padStart(3, '0');
                 
                 const itemTotal = parseFloat(document.getElementById('ord-item-total').value);
@@ -507,72 +442,41 @@
                     seqId, timestamp: Date.now(),
                     date: new Date().toLocaleDateString(),
                     deliveryDate: document.getElementById('ord-date-delivery').value,
-                    customer: { 
-                        name: document.getElementById('ord-name').value, 
-                        phone: document.getElementById('ord-phone').value,
-                        address: document.getElementById('ord-address').value
-                    },
+                    customer: { name: document.getElementById('ord-name').value, phone: document.getElementById('ord-phone').value, address: document.getElementById('ord-address').value },
                     items,
-                    delivery: {
-                        mode: document.getElementById('ord-delivery-mode').value,
-                        porterCost: parseFloat(document.getElementById('ord-porter-cost').value)||0,
-                        charge: deliveryCharge
-                    },
-                    financials: {
-                        total: itemTotal + deliveryCharge,
-                        advance,
-                        balance: (itemTotal + deliveryCharge) - advance,
-                        mode: document.getElementById('ord-paymode').value
-                    },
-                    status: 'Pending'
+                    delivery: { mode: document.getElementById('ord-delivery-mode').value, porterCost: parseFloat(document.getElementById('ord-porter-cost').value)||0, charge: deliveryCharge },
+                    financials: { total: itemTotal+deliveryCharge, advance, balance: (itemTotal+deliveryCharge)-advance, mode: document.getElementById('ord-paymode').value },
+                    status: 'Pending',
+                    stockUsed: document.getElementById('ord-stock-item').value || null
                 };
 
                 const docRef = await addDoc(collection(db, "orders"), orderData);
-                
-                // Upload Images
                 const main = document.getElementById('ord-main-image').files[0];
-                if(main) await uploadImages(docRef.id, [main], 'main');
+                if(main) await uploadImages(docRef.id, [main], 'main', btn);
                 const others = document.getElementById('ord-images').files;
-                if(others.length) await uploadImages(docRef.id, others, 'intake');
+                if(others.length) await uploadImages(docRef.id, others, 'intake', btn);
+                
+                window.closeModal('modal-order');
+                window.switchView('orders'); 
 
-                closeModal('modal-order');
-                switchView('orders');
-            } catch(e) {
-                alert("Error: " + e.message);
-            } finally {
-                btn.disabled = false; btn.innerText = "Save Order";
-            }
+            } catch(e) { alert("Error: " + e.message); } finally { btn.disabled = false; btn.innerText = "Save Order"; }
         };
 
         window.renderOrders = (filter = 'All') => {
             const list = document.getElementById('orders-list');
             list.innerHTML = '';
             const filtered = window.orders.filter(o => filter === 'All' ? true : o.status === filter);
-            
-            // Check Alerts
             const today = new Date().toISOString().split('T')[0];
             const due = window.orders.filter(o => o.deliveryDate === today && o.status !== 'Completed').length;
             const alert = document.getElementById('delivery-alert');
-            if(due > 0) { alert.classList.remove('hidden'); document.getElementById('delivery-count').innerText = due; } 
-            else alert.classList.add('hidden');
+            if(due > 0) { alert.classList.remove('hidden'); document.getElementById('delivery-count').innerText = due; } else alert.classList.add('hidden');
 
             filtered.forEach(o => {
                 const div = document.createElement('div');
                 div.className = 'card';
-                div.onclick = () => openViewOrder(o.id);
+                div.onclick = () => window.openViewOrder(o.id);
                 const itemsText = o.items ? o.items.map(i=>i.type).join(', ') : '';
-                div.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                        <span class="badge" style="background:#eee;">#${o.seqId}</span>
-                        <span style="font-size:12px; color:#888;">${o.date}</span>
-                    </div>
-                    <div style="font-weight:bold; font-size:16px;">${o.customer.name}</div>
-                    <div style="font-size:14px; color:#555; margin:4px 0;">${itemsText}</div>
-                    <div style="display:flex; justify-content:space-between; margin-top:8px;">
-                        <span class="badge ${o.status==='Completed'?'bg-completed':(o.status==='Ready'?'bg-ready':'bg-pending')}">${o.status}</span>
-                        <span style="font-weight:bold; color:${o.financials.balance>0?'var(--danger)':'var(--success)'}">Bal: ${o.financials.balance}</span>
-                    </div>
-                `;
+                div.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span class="badge" style="background:#eee;">#${o.seqId}</span><span style="font-size:12px; color:#888;">${o.date}</span></div><div style="font-weight:bold; font-size:16px;">${o.customer.name}</div><div style="font-size:14px; color:#555; margin:4px 0;">${itemsText}</div><div style="display:flex; justify-content:space-between; margin-top:8px;"><span class="badge ${o.status==='Completed'?'bg-completed':(o.status==='Ready'?'bg-ready':'bg-pending')}">${o.status}</span><span style="font-weight:bold; color:${o.financials.balance>0?'var(--danger)':'var(--success)'}">Bal: ${o.financials.balance}</span></div>`;
                 list.appendChild(div);
             });
         };
@@ -581,198 +485,70 @@
             viewingOrderId = id;
             const o = window.orders.find(x => x.id === id);
             if(!o) return;
-            
             const content = document.getElementById('view-order-content');
             const actions = document.getElementById('order-action-bar');
-            
             let itemsHtml = o.items.map(i => `<div style="border-bottom:1px solid #eee; padding:8px 0;"><b>${i.brand} ${i.type}</b><br><small>${i.service}</small></div>`).join('');
-            
-            content.innerHTML = `
-                <div style="text-align:center; margin-bottom:16px;">
-                    <div id="view-order-main-photo" style="width:100%; height:200px; background:#f0f0f0; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; overflow:hidden;">Loading...</div>
-                    <h2>${o.customer.name}</h2>
-                    <a href="tel:${o.customer.phone}" style="color:var(--info);">${o.customer.phone}</a>
-                </div>
-                <div class="card" style="background:#fafafa;">${itemsHtml}</div>
-                <div style="display:flex; justify-content:space-between; margin-top:16px;">
-                    <span>Total: <b>${o.financials.total}</b></span>
-                    <span>Balance: <b style="color:${o.financials.balance>0?'red':'green'}">${o.financials.balance}</b></span>
-                </div>
-                <div id="view-order-intake-images" class="img-grid" style="margin-top:16px;"></div>
-                ${o.status === 'Completed' ? `<h4 style="margin-top:10px; color:green;">Proof</h4><div id="view-order-proof-images" class="img-grid"></div>` : ''}
-            `;
+            content.innerHTML = `<div style="text-align:center; margin-bottom:16px;"><div id="view-order-main-photo" style="width:100%; height:200px; background:#f0f0f0; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; overflow:hidden;">Loading...</div><h2>${o.customer.name}</h2><a href="tel:${o.customer.phone}" style="color:var(--info);">${o.customer.phone}</a></div><div class="card" style="background:#fafafa;">${itemsHtml}</div><div style="display:flex; justify-content:space-between; margin-top:16px;"><span>Total: <b>${o.financials.total}</b></span><span>Balance: <b style="color:${o.financials.balance>0?'red':'green'}">${o.financials.balance}</b></span></div><div id="view-order-intake-images" class="img-grid" style="margin-top:16px;"></div>${o.status === 'Completed' ? `<h4 style="margin-top:10px; color:green;">Proof</h4><div id="view-order-proof-images" class="img-grid"></div>` : ''}`;
 
-            // Load Images via Query (Client Side Filter for Simplicity)
-            // Note: In Firestore, onSnapshot of collection might be expensive if many images.
-            // But since we use one main listener, we can just query images for this ID once.
-            // Or better: We store images in subcollection? No, root 'images' collection.
-            // Let's do a one-off query.
-            const q = query(collection(db, "images"));
-            // We can't filter server side without index on 'orderId'.
-            // So we fetch all and filter? Bad performance eventually.
-            // BETTER: User index creation link in console if needed.
-            // I will use client filter on snapshot for this demo.
-            
-            onSnapshot(collection(db, "images"), (snap) => {
-                 // Clear
+            // Load Images (Cloud)
+            const q = query(collection(db, "images"), where("orderId", "==", id));
+            getDocs(q).then(snap => {
                  const mainC = document.getElementById('view-order-main-photo');
                  const intakeC = document.getElementById('view-order-intake-images');
                  const proofC = document.getElementById('view-order-proof-images');
                  if(intakeC) intakeC.innerHTML = '';
                  if(proofC) proofC.innerHTML = '';
-
                  let mainFound = false;
-                 
                  snap.forEach(doc => {
                      const d = doc.data();
-                     if(d.orderId === id) {
-                         const img = `<img src="${d.blob}" class="img-thumb" onclick="window.openImageModal('${d.blob}')">`;
-                         if(d.type === 'main') {
-                             mainC.innerHTML = `<img src="${d.blob}" style="width:100%; height:100%; object-fit:cover;" onclick="window.openImageModal('${d.blob}')">`;
-                             mainFound = true;
-                         } else if (d.type === 'intake' && intakeC) {
-                             intakeC.innerHTML += img;
-                         } else if (d.type === 'proof' && proofC) {
-                             proofC.innerHTML += img;
-                         }
-                     }
+                     const img = `<img src="${d.blob}" class="img-thumb" onclick="window.openImageModal('${d.blob}')">`;
+                     if(d.type === 'main') { mainC.innerHTML = `<img src="${d.blob}" style="width:100%; height:100%; object-fit:cover;" onclick="window.openImageModal('${d.blob}')">`; mainFound=true; }
+                     else if (d.type === 'intake' && intakeC) intakeC.innerHTML += img;
+                     else if (d.type === 'proof' && proofC) proofC.innerHTML += img;
                  });
                  if(!mainFound) mainC.innerHTML = '<span style="color:#999;font-size:12px;">No Cover Photo</span>';
             });
 
             actions.innerHTML = '';
             if(o.status === 'Pending') {
-                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="shareBill('${o.id}')">Send Bill</button><button class="btn btn-primary" onclick="updateStatus('${o.id}', 'Ready')">Mark Ready</button>`;
+                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.shareBill('${o.id}')">Send Bill</button><button class="btn btn-primary" onclick="window.updateStatus('${o.id}', 'Ready')">Mark Ready</button>`;
             } else if (o.status === 'Ready') {
-                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="sendWhatsApp('${o.customer.phone}', 'Hello ${o.customer.name}, your order #${o.seqId} is ready!')">Notify</button><button class="btn btn-primary" onclick="pendingCompleteId='${o.id}'; document.getElementById('modal-proof').classList.add('open')">Complete</button>`;
+                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.sendWhatsApp('${o.customer.phone}', 'Hello ${o.customer.name}, your order #${o.seqId} is ready!')">Notify</button><button class="btn btn-primary" onclick="window.initiateCompleteOrder('${o.id}')">Complete</button>`;
             } else {
-                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="sendWhatsApp('${o.customer.phone}', '${REVIEW_LINK}')">Ask Review</button>`;
+                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.sendWhatsApp('${o.customer.phone}', '${REVIEW_LINK}')">Ask Review</button>`;
             }
             document.getElementById('modal-view-order').classList.add('open');
         };
 
         window.updateStatus = async (id, status) => {
-            const o = window.orders.find(x => x.id === id);
             const updates = { status };
-            if(status === 'Completed') {
-                updates['financials.balance'] = 0;
-            }
+            if(status === 'Completed') updates['financials.balance'] = 0;
             await updateDoc(doc(db, "orders", id), updates);
-            if(status !== 'Completed') closeModal('modal-view-order');
+            if(status !== 'Completed') window.closeModal('modal-view-order');
         };
+
+        window.initiateCompleteOrder = (id) => {
+            pendingCompleteId = id; document.getElementById('modal-proof').classList.add('open');
+        }
 
         window.saveProofAndComplete = async () => {
             const files = document.getElementById('proof-image').files;
             if(!files.length) return alert("Upload Proof");
             const btn = document.querySelector('#modal-proof .btn-primary');
-            btn.disabled = true;
-            await uploadImages(pendingCompleteId, files, 'proof');
-            await updateStatus(pendingCompleteId, 'Completed');
-            closeModal('modal-proof');
+            btn.disabled = true; btn.innerText = "Uploading...";
+            await uploadImages(pendingCompleteId, files, 'proof', null);
+            await window.updateStatus(pendingCompleteId, 'Completed');
+            window.closeModal('modal-proof');
             btn.disabled = false;
         };
 
         window.deleteOrder = async () => {
             if(!confirm("Delete permanently?")) return;
             await deleteDoc(doc(db, "orders", viewingOrderId));
-            closeModal('modal-view-order');
+            window.closeModal('modal-view-order');
         }
 
-        // --- Helpers ---
-        window.switchView = (id, el) => {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById('view-'+id).classList.add('active');
-            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            if(el) el.classList.add('active');
-        };
-        window.closeModal = (id) => document.getElementById(id).classList.remove('open');
-        window.openOrderModal = () => {
-            document.getElementById('order-form').reset();
-            document.getElementById('order-items-container').innerHTML = '';
-            window.addOrderItem();
-            document.getElementById('modal-order').classList.add('open');
-        }
-        window.addOrderItem = () => {
-            const div = document.createElement('div');
-            div.className = 'item-row';
-            div.innerHTML = `
-                <button type="button" class="remove-item" onclick="this.parentElement.remove(); calcBalance();">&times;</button>
-                <div class="flex-row">
-                    <input type="text" class="item-brand" placeholder="Brand">
-                    <select class="item-type"><option>Sneaker</option><option>Sport Shoe</option><option>Formals</option><option>Boots</option><option>Heels</option><option>Sandals</option><option>Bags</option><option>Jackets</option><option>Other</option></select>
-                </div>
-                <input type="text" class="item-service" placeholder="Select Services" readonly onclick="openServiceSelector(this)" style="cursor:pointer; background:white;">
-                <div class="flex-row">
-                    <input type="text" class="item-specs" placeholder="Specs">
-                    <input type="number" class="item-price" placeholder="Price" oninput="calcBalance()">
-                </div>
-            `;
-            document.getElementById('order-items-container').appendChild(div);
-        }
-        window.openServiceSelector = (el) => {
-            currentServiceInput = el;
-            const container = document.getElementById('service-options-container');
-            container.innerHTML = '';
-            const current = el.value.split(', ');
-            ALL_SERVICES.forEach(s => {
-                const checked = current.includes(s) ? 'checked' : '';
-                container.innerHTML += `
-                    <label class="service-option-label">
-                        <input type="checkbox" value="${s}" ${checked}>
-                        <span class="service-text">${s}</span>
-                        <div class="service-tick"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>
-                    </label>`;
-            });
-            document.getElementById('modal-service-selector').classList.add('open');
-        }
-        window.saveServiceSelection = () => {
-            const vals = Array.from(document.querySelectorAll('#service-options-container input:checked')).map(c => c.value);
-            if(currentServiceInput) currentServiceInput.value = vals.join(', ');
-            closeModal('modal-service-selector');
-        }
-        window.calcBalance = () => {
-            let total = 0;
-            document.querySelectorAll('.item-price').forEach(i => total += (parseFloat(i.value)||0));
-            document.getElementById('ord-item-total').value = total;
-            const del = parseFloat(document.getElementById('ord-delivery-charge').value)||0;
-            const adv = parseFloat(document.getElementById('ord-advance').value)||0;
-            document.getElementById('ord-balance').innerText = (total + del - adv);
-        }
-        window.toggleDeliveryFields = () => {
-            const mode = document.getElementById('ord-delivery-mode').value;
-            const fields = document.getElementById('delivery-fields');
-            fields.style.display = mode === 'Pickup' ? 'block' : 'none';
-        }
-        window.openInventoryModal = () => document.getElementById('modal-inventory').classList.add('open');
-        window.saveInventory = async (e) => {
-            e.preventDefault();
-            await addDoc(collection(db, "inventory"), {
-                name: document.getElementById('inv-name').value,
-                brand: document.getElementById('inv-brand').value,
-                qty: document.getElementById('inv-qty').value,
-                price: document.getElementById('inv-price').value
-            });
-            closeModal('modal-inventory');
-        }
-        window.renderInventory = () => {
-            const el = document.getElementById('inventory-list');
-            el.innerHTML = window.inventory.map(i => `<div class="card" style="display:flex; justify-content:space-between;"><span>${i.name}</span><b>${i.qty}</b></div>`).join('');
-        }
-        window.populateStockDropdown = () => {
-            const s = document.getElementById('ord-stock-item');
-            s.innerHTML = '<option value="">-- Select --</option>';
-            window.inventory.forEach(i => s.innerHTML+=`<option value="${i.id}">${i.name}</option>`);
-        }
-        window.updateStockLabel = () => {}; 
-        window.filterOrders = (status) => {
-            document.querySelectorAll('.badge').forEach(b => b.style.opacity='0.5');
-            event.target.style.opacity='1';
-            renderOrders(status);
-        }
-        window.sendWhatsApp = (phone, text) => window.open(`https://wa.me/91${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
-        window.openImageModal = (src) => { document.getElementById('preview-full-img').src=src; document.getElementById('modal-image-preview').classList.add('open'); };
-
-        // Duplicate Bill Gen from previous answer (kept short for space)
+        // Bill Logic
         window.shareBill = async (id) => {
             const o = window.orders.find(x => x.id === id);
             const canvas = document.getElementById('billCanvas');
@@ -780,58 +556,118 @@
             const width = 900;
             let h = 1300 + (o.items.length * 150);
             canvas.width = width; canvas.height = h;
-            
             ctx.fillStyle = "white"; ctx.fillRect(0,0,width,h);
             
             // Header
             const logoImg = document.getElementById('logo-img-res');
             let logoDrawn = false;
-            try { if(logoImg.complete) { 
-                ctx.drawImage(logoImg, width/2 - 150, 50, 300, 300 * (logoImg.height/logoImg.width)); 
-                logoDrawn=true; 
-            }} catch(e){}
+            try { if(logoImg.complete) { ctx.drawImage(logoImg, width/2 - 150, 50, 300, 300 * (logoImg.height/logoImg.width)); logoDrawn=true; }} catch(e){}
+            if(!logoDrawn) { ctx.fillStyle = "#4E342E"; ctx.font = "bold 60px sans-serif"; ctx.textAlign = "center"; ctx.fillText("MR BOOT", width/2, 200); }
+            ctx.fillStyle="#4E342E"; ctx.font = "30px sans-serif"; ctx.textAlign="center"; ctx.fillText("SHOE LAUNDRY", width/2, 380);
+            
+            // Fetch Main Photo
+            try {
+                const q = query(collection(db, "images"), where("orderId", "==", id), where("type", "==", "main"));
+                const snap = await getDocs(q);
+                if(!snap.empty) {
+                    const blob = snap.docs[0].data().blob;
+                    const imgObj = new Image();
+                    imgObj.src = blob;
+                    await new Promise(r => imgObj.onload = r);
+                    ctx.drawImage(imgObj, width/2-250, 420, 500, 500 * (imgObj.height/imgObj.width));
+                }
+            } catch(e) {}
 
-            if(!logoDrawn) {
-                ctx.fillStyle = "#4E342E"; ctx.font = "bold 60px sans-serif"; ctx.textAlign = "center";
-                ctx.fillText("MR BOOT", width/2, 200);
-            }
-            
-            // Content
+            let y = 1000;
             ctx.textAlign = "left"; ctx.fillStyle = "black"; ctx.font = "bold 40px sans-serif";
-            ctx.fillText(`ORDER #${o.seqId}`, 50, 450);
+            ctx.fillText(`ORDER #${o.seqId}`, 50, y);
             ctx.textAlign = "right"; ctx.font = "30px sans-serif";
-            ctx.fillText(o.date, 850, 450);
+            ctx.fillText(o.date, 850, y); y+=80;
             
-            let y = 530;
             o.items.forEach(i => {
                 ctx.textAlign="left"; ctx.font="bold 35px sans-serif"; ctx.fillText(`${i.brand} ${i.type}`, 50, y);
-                ctx.textAlign="right"; ctx.fillText(i.price, 850, y);
-                y+=45;
-                ctx.textAlign="left"; ctx.font="italic 30px sans-serif"; ctx.fillStyle="#555";
-                ctx.fillText(i.service, 50, y);
-                y+=50; ctx.fillStyle="black";
+                ctx.textAlign="right"; ctx.fillText(i.price, 850, y); y+=45;
+                ctx.textAlign="left"; ctx.font="italic 30px sans-serif"; ctx.fillStyle="#555"; ctx.fillText(i.service, 50, y); y+=50; ctx.fillStyle="black";
             });
 
             const footerY = y + 50;
             ctx.fillStyle='#F9F9F9'; ctx.fillRect(40, footerY, 820, 250);
             ctx.fillStyle='#000'; ctx.font='36px sans-serif'; 
-            ctx.textAlign='left'; ctx.fillText('Total', 80, footerY+60);
-            ctx.textAlign='right'; ctx.fillText(o.financials.total, 820, footerY+60);
-            ctx.textAlign='left'; ctx.fillText('Advance', 80, footerY+120);
-            ctx.textAlign='right'; ctx.fillText(o.financials.advance, 820, footerY+120);
-            ctx.textAlign='left'; ctx.fillText('Balance', 80, footerY+200);
-            ctx.textAlign='right'; ctx.fillText(o.financials.balance, 820, footerY+200);
-
-            ctx.fillStyle='#888'; ctx.font='30px sans-serif'; ctx.textAlign='center';
-            ctx.fillText('Thank u for Cooperation', width/2, h - 30);
+            ctx.textAlign='left'; ctx.fillText('Total', 80, footerY+60); ctx.textAlign='right'; ctx.fillText(o.financials.total, 820, footerY+60);
+            ctx.textAlign='left'; ctx.fillText('Advance', 80, footerY+120); ctx.textAlign='right'; ctx.fillText(o.financials.advance, 820, footerY+120);
+            ctx.textAlign='left'; ctx.fillText('Balance', 80, footerY+200); ctx.textAlign='right'; ctx.fillText(o.financials.balance, 820, footerY+200);
             
             canvas.toBlob(blob => {
-                const a = document.createElement('a');
-                a.download = `bill_${o.seqId}.png`;
-                a.href = URL.createObjectURL(blob);
-                a.click();
+                const a = document.createElement('a'); a.download = `bill_${o.seqId}.png`; a.href = URL.createObjectURL(blob); a.click();
+                setTimeout(() => { if(confirm("Bill Downloaded. Open WhatsApp now?")) window.sendWhatsApp(o.customer.phone, "Here is your bill (attach image)"); }, 1000);
             });
         };
+
+        // --- Helpers ---
+        window.renderReports = () => {
+            let rev=0, pend=0, prof=0;
+            window.orders.forEach(o => { rev+=o.financials.total; if(o.status!=='Completed') pend+=o.financials.balance; });
+            prof += rev;
+            document.getElementById('rep-revenue').innerText = rev;
+            document.getElementById('rep-pending').innerText = pend;
+            document.getElementById('rep-profit').innerText = prof;
+        };
+        window.renderCustomers = () => {
+            const el = document.getElementById('customers-list'); el.innerHTML = '';
+            Object.values(window.customers).forEach(c => { el.innerHTML += `<div class="card"><h3>${c.name}</h3><p>${c.phone}</p><p>Orders: ${c.count}</p></div>`; });
+        };
+        window.switchView = (id, el) => {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-'+id).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if(el) el.classList.add('active');
+            if(id === 'orders') window.renderOrders(); if(id === 'customers') window.renderCustomers(); if(id === 'inventory') window.renderInventory(); if(id === 'reports') window.renderReports();
+        };
+        window.closeModal = (id) => document.getElementById(id).classList.remove('open');
+        window.openOrderModal = () => { document.getElementById('order-form').reset(); document.getElementById('order-items-container').innerHTML = ''; window.addOrderItem(); document.getElementById('modal-order').classList.add('open'); }
+        window.addOrderItem = () => {
+            const div = document.createElement('div'); div.className = 'item-row';
+            div.innerHTML = `<button type="button" class="remove-item" onclick="this.parentElement.remove(); window.calcBalance();">&times;</button><div class="flex-row"><input type="text" class="item-brand" placeholder="Brand"><select class="item-type"><option>Sneaker</option><option>Sport Shoe</option><option>Formals</option><option>Boots</option><option>Heels</option><option>Sandals</option><option>Bags</option><option>Jackets</option><option>Other</option></select></div><input type="text" class="item-service" placeholder="Select Services" readonly onclick="window.openServiceSelector(this)" style="cursor:pointer; background:white;"><div class="flex-row"><input type="text" class="item-specs" placeholder="Specs"><input type="number" class="item-price" placeholder="Price" oninput="window.calcBalance()"></div>`;
+            document.getElementById('order-items-container').appendChild(div);
+        }
+        window.openServiceSelector = (el) => {
+            currentServiceInput = el; const container = document.getElementById('service-options-container'); container.innerHTML = ''; const current = el.value.split(', ');
+            ALL_SERVICES.forEach(s => { container.innerHTML += `<label class="service-option-label"><input type="checkbox" value="${s}" ${current.includes(s)?'checked':''}><span class="service-text">${s}</span><div class="service-tick"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div></label>`; });
+            document.getElementById('modal-service-selector').classList.add('open');
+        }
+        window.saveServiceSelection = () => {
+            const vals = Array.from(document.querySelectorAll('#service-options-container input:checked')).map(c => c.value);
+            if(currentServiceInput) currentServiceInput.value = vals.join(', '); window.closeModal('modal-service-selector');
+        }
+        window.calcBalance = () => {
+            let total = 0; document.querySelectorAll('.item-price').forEach(i => total += (parseFloat(i.value)||0)); document.getElementById('ord-item-total').value = total;
+            const del = parseFloat(document.getElementById('ord-delivery-charge').value)||0; const adv = parseFloat(document.getElementById('ord-advance').value)||0; document.getElementById('ord-balance').innerText = (total + del - adv);
+        }
+        window.toggleDeliveryFields = () => {
+            const mode = document.getElementById('ord-delivery-mode').value; document.getElementById('delivery-fields').style.display = mode === 'Pickup' ? 'block' : 'none';
+        }
+        window.openInventoryModal = () => document.getElementById('modal-inventory').classList.add('open');
+        window.saveInventory = async (e) => {
+            e.preventDefault(); await addDoc(collection(db, "inventory"), { name: document.getElementById('inv-name').value, brand: document.getElementById('inv-brand').value, qty: document.getElementById('inv-qty').value, price: document.getElementById('inv-price').value }); window.closeModal('modal-inventory');
+        }
+        window.renderInventory = () => {
+            const el = document.getElementById('inventory-list'); el.innerHTML = window.inventory.map(i => `<div class="card" style="display:flex; justify-content:space-between;"><span>${i.name}</span><b>${i.qty}</b></div>`).join('');
+        }
+        window.populateStockDropdown = () => {
+            const s = document.getElementById('ord-stock-item'); s.innerHTML = '<option value="">-- Select --</option>'; window.inventory.forEach(i => s.innerHTML+=`<option value="${i.id}">${i.name}</option>`);
+        }
+        window.updateStockLabel = () => {}; 
+        window.filterOrders = (status) => {
+            document.querySelectorAll('.badge').forEach(b => b.style.opacity='0.5'); event.target.style.opacity='1'; window.renderOrders(status);
+        }
+        window.sendWhatsApp = (phone, text) => window.open(`https://wa.me/91${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
+        window.openImageModal = (src) => { document.getElementById('preview-full-img').src=src; document.getElementById('modal-image-preview').classList.add('open'); };
+
+        onAuthStateChanged(auth, user => { if(user) { document.getElementById('login-screen').classList.add('hidden'); document.getElementById('db-status').style.background = '#34C759'; initListeners(); }});
+        function initListeners() {
+            onSnapshot(collection(db, "orders"), (snap) => { window.orders = []; snap.forEach(doc => window.orders.push({id: doc.id, ...doc.data()})); window.orders.sort((a,b) => b.timestamp - a.timestamp); window.renderOrders(); window.renderReports(); });
+            onSnapshot(collection(db, "inventory"), (snap) => { window.inventory = []; snap.forEach(doc => window.inventory.push({id: doc.id, ...doc.data()})); window.renderInventory(); window.populateStockDropdown(); });
+        }
     </script>
 </body>
 </html>
