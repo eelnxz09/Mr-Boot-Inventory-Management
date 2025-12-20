@@ -323,11 +323,11 @@
                 <div style="background:#E5F1FF; padding:12px; border-radius:10px; margin-bottom:12px; border: 1px dashed #007AFF;">
                     <label style="color:#007AFF; font-weight:bold;">📸 Upload Main Photo (For Bill)</label>
                     <p style="font-size:11px; color:#555; margin-top:-4px; margin-bottom:8px;">This single photo will appear on the bill (e.g. Group photo of shoes).</p>
-                    <input type="file" id="ord-main-image" accept="image/*" style="margin-bottom:0;">
+                    <input type="file" id="ord-main-image" accept="image/png, image/jpeg, image/webp, image/heic, image/avif" style="margin-bottom:0;">
                 </div>
 
                 <label>Additional Photos (Individual/Defects)</label>
-                <input type="file" id="ord-images" multiple accept="image/*" style="margin-top:0;">
+                <input type="file" id="ord-images" multiple accept="image/png, image/jpeg, image/webp, image/heic, image/avif" style="margin-top:0;">
 
                 <select id="ord-stock-item" onchange="updateStockLabel()" style="margin-top:12px;">
                     <option value="">-- Select Add-on (Laces etc) --</option>
@@ -356,7 +356,7 @@
                     <option>Cash</option><option>UPI</option><option>Card</option>
                 </select>
 
-                <button type="submit" class="btn btn-primary">Save Order</button>
+                <button type="submit" class="btn btn-primary" id="save-order-btn">Save Order</button>
             </form>
         </div>
     </div>
@@ -370,7 +370,14 @@
 
     <!-- VIEW ORDER -->
     <div id="modal-view-order" class="modal">
-        <div class="modal-header"><h3>Details</h3><button class="close-btn" onclick="closeModal('modal-view-order')">&times;</button></div>
+        <div class="modal-header">
+            <h3>Details</h3>
+            <!-- Updated Header with Delete Icon -->
+            <div style="display:flex; gap:16px; align-items:center;">
+                <button class="close-btn" onclick="deleteOrder()" style="background:none; color:#FF3B30; font-size:24px; padding:0;">🗑️</button>
+                <button class="close-btn" onclick="closeModal('modal-view-order')">&times;</button>
+            </div>
+        </div>
         <div class="modal-body" id="view-order-content"></div>
         <div style="padding:16px; border-top:1px solid #eee;" id="order-action-bar" class="flex-row"></div>
     </div>
@@ -380,7 +387,7 @@
         <div class="modal-header"><h3>Complete</h3><button class="close-btn" onclick="closeModal('modal-proof')">&times;</button></div>
         <div class="modal-body">
             <p>Upload completion proof:</p>
-            <input type="file" id="proof-image" accept="image/*">
+            <input type="file" id="proof-image" accept="image/png, image/jpeg, image/webp, image/heic, image/avif">
             <button class="btn btn-primary" onclick="saveProofAndComplete()">Complete</button>
         </div>
     </div>
@@ -417,7 +424,7 @@
         const REVIEW_LINK = "https://g.page/r/Ce0M0864Elt6EBE/review";
         const ALL_SERVICES = ["Standard Laundry", "Premium Deep Clean", "Sole Pasting", "Net Change", "Sole Change", "Heel Change", "Patch Work", "Grip Rubber", "Grip TPR", "Bag Chain Change", "Tongue Change", "Insole Change", "Colour Dye", "Repair", "Other"];
         
-        let db, currentServiceInput, pendingCompleteId;
+        let db, currentServiceInput, pendingCompleteId, viewingOrderId;
         let inventory = JSON.parse(localStorage.getItem('mrboot_inventory')) || [];
         let orders = JSON.parse(localStorage.getItem('mrboot_orders')) || [];
         let customers = JSON.parse(localStorage.getItem('mrboot_customers')) || {};
@@ -427,6 +434,7 @@
             const r = indexedDB.open("MrBootDB", 2);
             r.onupgradeneeded = e => { e.target.result.createObjectStore('images', { keyPath: 'id' }); };
             r.onsuccess = e => { db = e.target.result; document.getElementById('db-status').style.background = '#34C759'; };
+            r.onerror = e => { console.error("DB Error", e); alert("Database failed to load."); };
         };
 
         function attemptLogin() {
@@ -518,68 +526,87 @@
 
         async function saveOrder(e) {
             e.preventDefault();
-            const items = [];
-            document.querySelectorAll('.item-row').forEach(r => {
-                items.push({
-                    brand: r.querySelector('.item-brand').value,
-                    type: r.querySelector('.item-type').value,
-                    service: r.querySelector('.item-service').value,
-                    specs: r.querySelector('.item-specs').value,
-                    price: parseFloat(r.querySelector('.item-price').value)||0
-                });
-            });
-            if(!items.length) return alert("Add items");
-
-            lastSeqId++; localStorage.setItem('mrboot_last_seq', lastSeqId);
-            const id = Date.now();
-            const phone = document.getElementById('ord-phone').value;
-            const itemTotal = parseFloat(document.getElementById('ord-item-total').value);
-            const deliveryCharge = parseFloat(document.getElementById('ord-delivery-charge').value)||0;
-            const advance = parseFloat(document.getElementById('ord-advance').value)||0;
-
-            const order = {
-                id, seqId: String(lastSeqId).padStart(3,'0'),
-                date: new Date().toLocaleDateString(),
-                deliveryDate: document.getElementById('ord-date-delivery').value,
-                customer: { name: document.getElementById('ord-name').value, phone, address: document.getElementById('ord-address').value },
-                items,
-                delivery: { mode: document.getElementById('ord-delivery-mode').value, porterCost: parseFloat(document.getElementById('ord-porter-cost').value)||0, charge: deliveryCharge },
-                financials: { total: itemTotal+deliveryCharge, advance, balance: (itemTotal+deliveryCharge)-advance, mode: document.getElementById('ord-paymode').value },
-                status: 'Pending'
-            };
-
-            orders.unshift(order);
-            localStorage.setItem('mrboot_orders', JSON.stringify(orders));
+            const btn = document.getElementById('save-order-btn');
             
-            // Save Customer
-            if(!customers[phone]) customers[phone] = { name: order.customer.name, phone, count: 0, spend: 0 };
-            customers[phone].count++; customers[phone].spend += order.financials.total;
-            localStorage.setItem('mrboot_customers', JSON.stringify(customers));
+            try {
+                // Validation
+                const phone = document.getElementById('ord-phone').value;
+                const name = document.getElementById('ord-name').value;
+                if(!phone || !name) throw new Error("Customer Name and Phone are required.");
+                
+                const items = [];
+                document.querySelectorAll('.item-row').forEach(r => {
+                    items.push({
+                        brand: r.querySelector('.item-brand').value,
+                        type: r.querySelector('.item-type').value,
+                        service: r.querySelector('.item-service').value,
+                        specs: r.querySelector('.item-specs').value,
+                        price: parseFloat(r.querySelector('.item-price').value)||0
+                    });
+                });
+                if(!items.length) throw new Error("Please add at least one item.");
 
-            // Save Images
-            // 1. Main Bill Photo
-            const mainPhotoFile = document.getElementById('ord-main-image').files[0];
-            if (mainPhotoFile) {
-                await storeImages(id, [mainPhotoFile], 'main'); // New type 'main'
-            }
+                // Disable button to prevent double-click
+                btn.disabled = true;
+                btn.innerText = "Saving...";
 
-            // 2. Additional Photos
-            const additionalFiles = document.getElementById('ord-images').files;
-            if(additionalFiles.length) {
-                await storeImages(id, additionalFiles, 'intake');
-            }
+                lastSeqId++; localStorage.setItem('mrboot_last_seq', lastSeqId);
+                const id = Date.now();
+                const itemTotal = parseFloat(document.getElementById('ord-item-total').value);
+                const deliveryCharge = parseFloat(document.getElementById('ord-delivery-charge').value)||0;
+                const advance = parseFloat(document.getElementById('ord-advance').value)||0;
 
-            const stockId = document.getElementById('ord-stock-item').value;
-            if (stockId) {
-                const idx = inventory.findIndex(i => i.id == stockId);
-                if(idx > -1) {
-                    inventory[idx].qty = Math.max(0, inventory[idx].qty - 1);
-                    localStorage.setItem('mrboot_inventory', JSON.stringify(inventory));
+                const order = {
+                    id, seqId: String(lastSeqId).padStart(3,'0'),
+                    date: new Date().toLocaleDateString(),
+                    deliveryDate: document.getElementById('ord-date-delivery').value,
+                    customer: { name, phone, address: document.getElementById('ord-address').value },
+                    items,
+                    delivery: { mode: document.getElementById('ord-delivery-mode').value, porterCost: parseFloat(document.getElementById('ord-porter-cost').value)||0, charge: deliveryCharge },
+                    financials: { total: itemTotal+deliveryCharge, advance, balance: (itemTotal+deliveryCharge)-advance, mode: document.getElementById('ord-paymode').value },
+                    status: 'Pending'
+                };
+
+                orders.unshift(order);
+                localStorage.setItem('mrboot_orders', JSON.stringify(orders));
+                
+                // Save Customer
+                if(!customers[phone]) customers[phone] = { name: order.customer.name, phone, count: 0, spend: 0 };
+                customers[phone].count++; customers[phone].spend += order.financials.total;
+                localStorage.setItem('mrboot_customers', JSON.stringify(customers));
+
+                // Save Images
+                // 1. Main Bill Photo
+                const mainPhotoFile = document.getElementById('ord-main-image').files[0];
+                if (mainPhotoFile) {
+                    await storeImages(id, [mainPhotoFile], 'main'); 
                 }
-            }
 
-            closeModal('modal-order');
-            renderOrders();
+                // 2. Additional Photos
+                const additionalFiles = document.getElementById('ord-images').files;
+                if(additionalFiles.length) {
+                    await storeImages(id, additionalFiles, 'intake');
+                }
+
+                const stockId = document.getElementById('ord-stock-item').value;
+                if (stockId) {
+                    const idx = inventory.findIndex(i => i.id == stockId);
+                    if(idx > -1) {
+                        inventory[idx].qty = Math.max(0, inventory[idx].qty - 1);
+                        localStorage.setItem('mrboot_inventory', JSON.stringify(inventory));
+                    }
+                }
+
+                closeModal('modal-order');
+                renderOrders();
+                switchView('orders'); // Force Switch to Home View
+            } catch (err) {
+                console.error("Save Order Error:", err);
+                alert("Error saving order: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Save Order";
+            }
         }
 
         // --- Proof & Completion Logic ---
@@ -604,6 +631,18 @@
             updateStatus(pendingCompleteId, 'Completed', false); 
             closeModal('modal-proof');
             openViewOrder(pendingCompleteId); 
+        }
+
+        // Delete Order Logic
+        function deleteOrder() {
+            if(!viewingOrderId) return;
+            if(!confirm("Are you sure you want to PERMANENTLY delete this order?")) return;
+            
+            orders = orders.filter(o => o.id !== viewingOrderId);
+            localStorage.setItem('mrboot_orders', JSON.stringify(orders));
+            
+            closeModal('modal-view-order');
+            renderOrders();
         }
 
         function renderOrders(filter = 'All') {
@@ -639,6 +678,7 @@
         }
 
         function openViewOrder(id) {
+            viewingOrderId = id;
             const o = orders.find(x => x.id === id);
             const content = document.getElementById('view-order-content');
             const actions = document.getElementById('order-action-bar');
