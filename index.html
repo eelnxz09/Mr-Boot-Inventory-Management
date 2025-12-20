@@ -158,7 +158,6 @@
             <h3 style="margin-top:0;">Admin Login</h3>
             <p style="font-size:12px; color:#666;">Data syncs automatically.</p>
             <input type="password" id="login-pin" placeholder="Enter PIN (Default: 1234)" style="margin-bottom:16px; border:1px solid #ddd;">
-            <!-- Removed 'disabled' so user can always click to attempt login -->
             <button id="login-btn" class="btn btn-primary" onclick="window.attemptLogin()">Enter Shop</button>
         </div>
     </div>
@@ -251,7 +250,7 @@
         </a>
     </nav>
 
-    <!-- MODALS -->
+    <!-- ORDER MODAL -->
     <div id="modal-order" class="modal">
         <div class="modal-header"><h3>New Order</h3><button class="close-btn" onclick="window.closeModal('modal-order')">&times;</button></div>
         <div class="modal-body">
@@ -386,7 +385,10 @@
             if(p !== "1234") return alert("Wrong PIN");
             const btn = document.getElementById('login-btn');
             btn.innerText = "Connecting...";
-            try { await signInAnonymously(auth); } 
+            try { 
+                await signInAnonymously(auth); 
+                document.getElementById('login-screen').classList.add('hidden');
+            } 
             catch(e) { 
                 alert("Login failed: " + e.message); 
                 btn.innerText = "Enter Shop";
