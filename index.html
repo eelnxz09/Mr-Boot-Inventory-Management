@@ -6,7 +6,7 @@
     <title>Mr Boot Manager (Online)</title>
     <style>
         :root {
-            /* Palette */
+            /* Palette - Premium Leather & Modern UI */
             --primary: #4E342E; 
             --primary-dark: #281A16;
             --accent: #D7CCC8;
@@ -43,7 +43,7 @@
             color: white; padding: 24px; transition: transform 0.3s ease-in-out;
         }
         #login-screen.hidden { transform: translateY(-100%); }
-
+        
         /* Layout */
         header {
             height: 70px; background: var(--bg-card); flex-shrink: 0;
@@ -141,8 +141,22 @@
         .service-option-label input:checked ~ .service-tick { background: var(--success); border-color: var(--success); }
         .service-tick svg { width: 16px; height: 16px; opacity: 0; transform: scale(0.5); transition: all 0.2s; }
         .service-option-label input:checked ~ .service-tick svg { opacity: 1; transform: scale(1); }
+
+        /* Loading Overlay */
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 10000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: white; backdrop-filter: blur(5px);
+        }
+        #loading-overlay.hidden { display: none; }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid #fff; border-top: 4px solid transparent;
+            border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
-    <!-- GLOBAL ERROR HANDLER FOR MOBILE -->
+    <!-- GLOBAL ERROR HANDLER -->
     <script>
         window.onerror = function(msg, url, line) {
             // alert("App Error: " + msg + "\nLine: " + line);
@@ -151,31 +165,47 @@
 </head>
 <body>
 
+    <!-- LOADING OVERLAY -->
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+        <div id="loading-text">Processing...</div>
+    </div>
+
     <!-- LOGIN -->
     <div id="login-screen">
         <h1 style="font-size:32px; margin-bottom:40px;">Mr Boot</h1>
         <div class="card" style="width:100%; max-width:320px; background:white; color:#333;">
-            <h3 style="margin-top:0;">Admin Login</h3>
-            <p style="font-size:12px; color:#666;">Data syncs automatically.</p>
-            <input type="password" id="login-pin" placeholder="Enter PIN (Default: 1234)" style="margin-bottom:16px; border:1px solid #ddd;">
-            <button id="login-btn" class="btn btn-primary" onclick="window.attemptLogin()">Enter Shop</button>
+            <h3 style="margin-top:0;">Shop Login</h3>
+            <p style="font-size:12px; color:#666;">Enter Email & Password to Sync Data.</p>
+            
+            <input type="email" id="login-email" placeholder="Email Address" style="margin-bottom:10px;">
+            <input type="password" id="login-password" placeholder="Password" style="margin-bottom:16px;">
+            
+            <button id="login-btn" class="btn btn-primary" onclick="window.loginWithEmail()">Login</button>
+            <button id="register-btn" class="btn btn-outline" style="margin-top:10px;" onclick="window.registerWithEmail()">Create New Account</button>
         </div>
     </div>
 
     <!-- HEADER -->
     <header>
         <div style="display:flex; align-items:center; gap:10px;">
+            <!-- Logo -->
             <img id="header-logo" src="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png" class="header-logo" onerror="this.style.display='none'; document.getElementById('header-text').style.display='block';">
             <div id="header-text" class="app-title" style="display:none;">
                 <h1>Mr Boot</h1>
                 <span style="font-size:10px; color:var(--text-sub);">Inventory & Service</span>
             </div>
         </div>
-        <div id="db-status" style="width:8px; height:8px; border-radius:50%; background:#ccc;"></div>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div id="db-status" style="width:8px; height:8px; border-radius:50%; background:#ccc;"></div>
+            <span id="user-email-display" style="font-size:10px; color:#666; max-width:80px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;"></span>
+            <button onclick="window.logout()" style="background:none; border:none; font-size:12px; color:red;">Exit</button>
+        </div>
     </header>
 
     <!-- HIDDEN CANVAS & RESOURCES -->
     <canvas id="billCanvas" style="display:none;"></canvas>
+    <!-- Direct link for canvas. MUST BE CORS enabled or base64 -->
     <img id="logo-img-res" src="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png" crossorigin="anonymous" style="display:none;">
 
     <main>
@@ -354,7 +384,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // FIREBASE CONFIG - USER PROVIDED
@@ -371,6 +401,9 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        // Using "boot-7e65c" specific paths to ensure isolation if needed, but standard paths are fine.
+        // We use root collection "artifacts/{appId}/public/data/orders" pattern to be safe with shared logic or just "orders".
+        // Based on user request for shared admin access, standard root "orders" is best.
         
         window.orders = [];
         window.inventory = [];
@@ -380,20 +413,98 @@
         const REVIEW_LINK = "https://g.page/r/Ce0M0864Elt6EBE/review";
         const ALL_SERVICES = ["Standard Laundry", "Premium Deep Clean", "Sole Pasting", "Net Change", "Sole Change", "Heel Change", "Patch Work", "Grip Rubber", "Grip TPR", "Bag Chain Change", "Tongue Change", "Insole Change", "Colour Dye", "Repair", "Other"];
 
-        window.attemptLogin = async () => {
-            const p = document.getElementById('login-pin').value;
-            if(p !== "1234") return alert("Wrong PIN");
-            const btn = document.getElementById('login-btn');
-            btn.innerText = "Connecting...";
+        // --- Loader ---
+        const showLoading = (msg) => {
+            document.getElementById('loading-text').innerText = msg;
+            document.getElementById('loading-overlay').classList.remove('hidden');
+        };
+        const hideLoading = () => document.getElementById('loading-overlay').classList.add('hidden');
+
+        // --- Auth ---
+        window.loginWithEmail = async () => {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            if(!email || !pass) return alert("Enter Email and Password");
+            showLoading("Logging in...");
             try { 
-                await signInAnonymously(auth); 
-                document.getElementById('login-screen').classList.add('hidden');
+                await signInWithEmailAndPassword(auth, email, pass);
+                // Auth listener will handle the rest
             } 
             catch(e) { 
+                hideLoading();
                 alert("Login failed: " + e.message); 
-                btn.innerText = "Enter Shop";
             }
         };
+
+        window.registerWithEmail = async () => {
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            if(!email || !pass) return alert("Enter Email and Password to create account");
+            showLoading("Creating Account...");
+            try {
+                await createUserWithEmailAndPassword(auth, email, pass);
+                alert("Account Created! You are now logged in.");
+            } catch(e) {
+                hideLoading();
+                alert("Registration failed: " + e.message);
+            }
+        };
+
+        window.logout = () => signOut(auth);
+
+        onAuthStateChanged(auth, user => { 
+            if(user) { 
+                document.getElementById('login-screen').classList.add('hidden'); 
+                document.getElementById('db-status').style.background = '#34C759'; 
+                document.getElementById('user-email-display').innerText = user.email;
+                hideLoading();
+                
+                // Add Timeout Safety for Initial Load
+                const loadTimeout = setTimeout(() => {
+                    hideLoading();
+                }, 10000); 
+                
+                initListeners(() => clearTimeout(loadTimeout)); 
+            } else {
+                document.getElementById('login-screen').classList.remove('hidden');
+                hideLoading();
+            }
+        });
+
+        // --- Core ---
+        function initListeners(onFirstLoad) {
+            let firstLoad = true;
+            onSnapshot(collection(db, "orders"), (snap) => {
+                window.orders = [];
+                snap.forEach(doc => window.orders.push({id: doc.id, ...doc.data()}));
+                window.orders.sort((a,b) => b.timestamp - a.timestamp);
+                
+                window.customers = {};
+                window.orders.forEach(o => {
+                    const p = o.customer.phone;
+                    if(!window.customers[p]) window.customers[p] = { name: o.customer.name, phone: p, count: 0, spend: 0 };
+                    window.customers[p].count++;
+                    window.customers[p].spend += o.financials.total;
+                });
+                
+                window.renderOrders();
+                window.renderReports();
+                window.renderCustomers();
+                if(viewingOrderId) window.openViewOrder(viewingOrderId);
+                
+                if(firstLoad && onFirstLoad) { onFirstLoad(); firstLoad = false; }
+            }, (error) => {
+                hideLoading();
+                if(error.code === 'permission-denied') alert("Database Permission Denied. Please enable Test Mode rules in Firebase Console.");
+            });
+
+            onSnapshot(collection(db, "inventory"), (snap) => {
+                window.inventory = [];
+                snap.forEach(doc => window.inventory.push({id: doc.id, ...doc.data()}));
+                window.renderInventory();
+                window.populateStockDropdown();
+            });
+        }
 
         const compressImage = (file) => {
             return new Promise((resolve, reject) => {
@@ -405,7 +516,7 @@
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
-                        const max = 600;
+                        const max = 500; 
                         let w = img.width, h = img.height;
                         if(w>h){ if(w>max){ h*=max/w; w=max; }} else { if(h>max){ w*=max/h; h=max; }}
                         canvas.width=w; canvas.height=h;
@@ -450,10 +561,11 @@
 
             const timeout = setTimeout(() => {
                 btn.disabled = false; btn.innerText = "Save Order";
-                alert("Request timed out. Check connection.");
+                hideLoading();
+                alert("Request timed out (Internet slow). Check connection.");
             }, 20000);
 
-            btn.disabled = true; btn.innerText = "Syncing...";
+            btn.disabled = true; btn.innerText = "Saving Data...";
             
             try {
                 let maxSeq = 0;
@@ -468,10 +580,24 @@
                     seqId, timestamp: Date.now(),
                     date: new Date().toLocaleDateString(),
                     deliveryDate: document.getElementById('ord-date-delivery').value,
-                    customer: { name: document.getElementById('ord-name').value, phone: document.getElementById('ord-phone').value, address: document.getElementById('ord-address').value },
+                    customer: { 
+                        name: document.getElementById('ord-name').value, 
+                        phone: document.getElementById('ord-phone').value,
+                        address: document.getElementById('ord-address').value
+                    },
                     items,
-                    delivery: { mode: document.getElementById('ord-delivery-mode').value, porterCost: parseFloat(document.getElementById('ord-porter-cost').value)||0, charge: deliveryCharge },
-                    financials: { total: itemTotal+deliveryCharge, advance, balance: (itemTotal+deliveryCharge)-advance, mode: document.getElementById('ord-paymode').value },
+                    delivery: { 
+                        mode: document.getElementById('ord-delivery-mode').value, 
+                        porterCost: parseFloat(document.getElementById('ord-porter-cost').value)||0, 
+                        charge: deliveryCharge 
+                    },
+                    financials: { 
+                        itemTotal, 
+                        total: itemTotal+deliveryCharge, 
+                        advance, 
+                        balance: (itemTotal+deliveryCharge)-advance, 
+                        mode: document.getElementById('ord-paymode').value 
+                    },
                     status: 'Pending',
                     stockUsed: document.getElementById('ord-stock-item').value || null
                 };
@@ -500,7 +626,7 @@
 
             } catch(e) {
                 clearTimeout(timeout);
-                alert("Error: " + e.message);
+                alert("Error Saving: " + e.message);
                 console.error(e);
             } finally {
                 btn.disabled = false; btn.innerText = "Save Order";
@@ -650,9 +776,26 @@
         }
         window.sendWhatsApp = (phone, text) => window.open(`https://wa.me/91${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
         window.openImageModal = (src) => { document.getElementById('preview-full-img').src=src; document.getElementById('modal-image-preview').classList.add('open'); };
-        window.backupData = () => alert("Online mode is active. Data is already in cloud.");
-        window.restoreData = () => alert("Online mode is active. Data is pulled from cloud.");
+        
+        window.renderReports = () => {
+            let rev=0, pend=0, prof=0;
+            window.orders.forEach(o => { 
+                rev+=o.financials.total; 
+                if(o.status!=='Completed') pend+=o.financials.balance; 
+                if(o.delivery && o.delivery.porterCost) prof -= o.delivery.porterCost;
+            });
+            prof += rev;
+            document.getElementById('rep-revenue').innerText = rev;
+            document.getElementById('rep-pending').innerText = pend;
+            document.getElementById('rep-profit').innerText = prof;
+        };
 
+        window.renderCustomers = () => {
+            const el = document.getElementById('customers-list'); el.innerHTML = '';
+            Object.values(window.customers).forEach(c => { el.innerHTML += `<div class="card"><h3>${c.name}</h3><p>${c.phone}</p><p>Orders: ${c.count}</p></div>`; });
+        };
+
+        // Bill Logic
         window.shareBill = async (id) => {
             const o = window.orders.find(x => x.id === id);
             const canvas = document.getElementById('billCanvas');
@@ -712,18 +855,6 @@
                 setTimeout(() => { if(confirm("Bill Downloaded. Open WhatsApp now?")) window.sendWhatsApp(o.customer.phone, "Here is your bill (attach image)"); }, 1000);
             });
         };
-
-        onAuthStateChanged(auth, user => { if(user) { 
-            document.getElementById('login-btn').innerText = "Enter Shop"; 
-            document.getElementById('login-btn').disabled = false;
-            document.getElementById('db-status').style.background = '#34C759'; 
-            initListeners(); 
-        }});
-
-        function initListeners() {
-            onSnapshot(collection(db, "orders"), (snap) => { window.orders = []; snap.forEach(doc => window.orders.push({id: doc.id, ...doc.data()})); window.orders.sort((a,b) => b.timestamp - a.timestamp); window.renderOrders(); window.renderReports(); });
-            onSnapshot(collection(db, "inventory"), (snap) => { window.inventory = []; snap.forEach(doc => window.inventory.push({id: doc.id, ...doc.data()})); window.renderInventory(); window.populateStockDropdown(); });
-        }
     </script>
 </body>
 </html>
