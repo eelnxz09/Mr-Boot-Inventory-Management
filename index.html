@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mr Boot Manager</title>
+    <title>Mr Boot Manager (Online)</title>
     <style>
         :root {
+            /* Palette - Premium Leather & Modern UI */
             --primary: #4E342E; 
             --primary-dark: #281A16;
             --accent: #D7CCC8;
@@ -42,6 +43,14 @@
             color: white; padding: 24px; transition: transform 0.3s ease-in-out;
         }
         #login-screen.hidden { transform: translateY(-100%); }
+        .user-card {
+            background: white; color: var(--text-main); width: 100%; max-width: 320px;
+            padding: 20px; border-radius: 20px; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 16px; cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
+        }
+        .user-card:active { transform: scale(0.98); }
 
         /* Layout */
         header {
@@ -127,7 +136,7 @@
         .item-row { background: white; border: 1px solid #eee; padding: 10px; border-radius: 10px; margin-bottom: 10px; position: relative; }
         .remove-item { position: absolute; top: 5px; right: 5px; color: red; background: none; border: none; font-size: 20px; }
         
-        /* Service Selection */
+        /* Service Selection Styling (Tick Mark) */
         .service-option-label {
             display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; 
             border-bottom: 1px solid #eee; cursor: pointer; background: white; transition: background 0.2s;
@@ -149,6 +158,7 @@
         <h1 style="font-size:32px; margin-bottom:40px;">Mr Boot</h1>
         <div class="card" style="width:100%; max-width:320px; background:white; color:#333;">
             <h3 style="margin-top:0;">Admin Login</h3>
+            <p style="font-size:12px; color:#666;">Data syncs automatically across devices.</p>
             <input type="password" id="login-pin" placeholder="Enter PIN (Default: 1234)" style="margin-bottom:16px; border:1px solid #ddd;">
             <button class="btn btn-primary" onclick="attemptLogin()">Enter Shop</button>
         </div>
@@ -157,6 +167,7 @@
     <!-- HEADER -->
     <header>
         <div style="display:flex; align-items:center; gap:10px;">
+            <!-- Logo -->
             <img id="header-logo" src="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png" class="header-logo" onerror="this.style.display='none'; document.getElementById('header-text').style.display='block';">
             <div id="header-text" class="app-title" style="display:none;">
                 <h1>Mr Boot</h1>
@@ -166,7 +177,7 @@
         <div id="db-status" style="width:8px; height:8px; border-radius:50%; background:#ccc;"></div>
     </header>
 
-    <!-- HIDDEN RESOURCES -->
+    <!-- HIDDEN CANVAS & RESOURCES -->
     <canvas id="billCanvas" style="display:none;"></canvas>
     <img id="logo-img-res" src="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png" crossorigin="anonymous" style="display:none;">
 
@@ -213,9 +224,10 @@
                 <p>Pending: <b id="rep-pending" style="color:var(--danger)">0</b></p>
                 <p>Profit (Net): <b id="rep-profit" style="color:var(--success)">0</b></p>
             </div>
+            
             <div class="card">
-                <h3>Cloud Status</h3>
-                <p style="font-size:12px; color:#666;">Data Sync: <span style="color:#34C759; font-weight:bold;">ONLINE</span></p>
+                <h3>System Status</h3>
+                <p style="font-size:12px; color:#666;">Data is automatically synced to Firebase Cloud.</p>
                 <button class="btn btn-outline" onclick="location.reload()">Refresh App</button>
             </div>
         </section>
@@ -241,7 +253,7 @@
         </a>
     </nav>
 
-    <!-- MODALS -->
+    <!-- ORDER MODAL -->
     <div id="modal-order" class="modal">
         <div class="modal-header"><h3>New Order</h3><button class="close-btn" onclick="closeModal('modal-order')">&times;</button></div>
         <div class="modal-body">
@@ -367,6 +379,7 @@
         window.orders = [];
         window.inventory = [];
         window.customers = {};
+        
         let pendingCompleteId, viewingOrderId, currentServiceInput;
         const REVIEW_LINK = "https://g.page/r/Ce0M0864Elt6EBE/review";
         const ALL_SERVICES = ["Standard Laundry", "Premium Deep Clean", "Sole Pasting", "Net Change", "Sole Change", "Heel Change", "Patch Work", "Grip Rubber", "Grip TPR", "Bag Chain Change", "Tongue Change", "Insole Change", "Colour Dye", "Repair", "Other"];
@@ -388,12 +401,12 @@
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
-                        const max = 800;
+                        const max = 600; // Smaller for speed
                         let w = img.width, h = img.height;
                         if(w>h){ if(w>max){ h*=max/w; w=max; }} else { if(h>max){ w*=max/h; h=max; }}
                         canvas.width=w; canvas.height=h;
                         ctx.drawImage(img,0,0,w,h);
-                        resolve(canvas.toDataURL('image/jpeg', 0.6));
+                        resolve(canvas.toDataURL('image/jpeg', 0.5));
                     };
                     img.onerror = () => reject(new Error("Img Error"));
                 };
@@ -414,6 +427,10 @@
         // --- GLOBAL FUNCTIONS ---
         window.saveOrder = async (e) => {
             e.preventDefault();
+            
+            if (!navigator.onLine) return alert("No Internet Connection");
+            if (!auth.currentUser) return alert("Not logged in. Please refresh.");
+
             const btn = document.getElementById('save-order-btn');
             const items = [];
             document.querySelectorAll('.item-row').forEach(r => {
@@ -427,7 +444,12 @@
             });
             if(!items.length) return alert("Add Items");
 
-            btn.disabled = true; btn.innerText = "Syncing...";
+            const timeout = setTimeout(() => {
+                btn.disabled = false; btn.innerText = "Save Order";
+                alert("Request timed out (Internet slow). Check connection.");
+            }, 15000);
+
+            btn.disabled = true; btn.innerText = "Saving Data...";
             
             try {
                 let maxSeq = 0;
@@ -451,15 +473,34 @@
                 };
 
                 const docRef = await addDoc(collection(db, "orders"), orderData);
+                
+                btn.innerText = "Uploading Photos...";
                 const main = document.getElementById('ord-main-image').files[0];
                 if(main) await uploadImages(docRef.id, [main], 'main', btn);
                 const others = document.getElementById('ord-images').files;
                 if(others.length) await uploadImages(docRef.id, others, 'intake', btn);
-                
+
+                // Stock
+                const stockId = document.getElementById('ord-stock-item').value;
+                if(stockId) {
+                    const stockItem = window.inventory.find(i => i.id === stockId);
+                    if(stockItem) {
+                        const newQty = Math.max(0, stockItem.qty - 1);
+                        await updateDoc(doc(db, "inventory", stockId), { qty: newQty });
+                    }
+                }
+
+                clearTimeout(timeout);
                 window.closeModal('modal-order');
                 window.switchView('orders'); 
 
-            } catch(e) { alert("Error: " + e.message); } finally { btn.disabled = false; btn.innerText = "Save Order"; }
+            } catch(e) {
+                clearTimeout(timeout);
+                alert("Error: " + e.message);
+                console.error(e);
+            } finally {
+                btn.disabled = false; btn.innerText = "Save Order";
+            }
         };
 
         window.renderOrders = (filter = 'All') => {
@@ -548,74 +589,6 @@
             window.closeModal('modal-view-order');
         }
 
-        // Bill Logic
-        window.shareBill = async (id) => {
-            const o = window.orders.find(x => x.id === id);
-            const canvas = document.getElementById('billCanvas');
-            const ctx = canvas.getContext('2d');
-            const width = 900;
-            let h = 1300 + (o.items.length * 150);
-            canvas.width = width; canvas.height = h;
-            ctx.fillStyle = "white"; ctx.fillRect(0,0,width,h);
-            
-            // Header
-            const logoImg = document.getElementById('logo-img-res');
-            let logoDrawn = false;
-            try { if(logoImg.complete) { ctx.drawImage(logoImg, width/2 - 150, 50, 300, 300 * (logoImg.height/logoImg.width)); logoDrawn=true; }} catch(e){}
-            if(!logoDrawn) { ctx.fillStyle = "#4E342E"; ctx.font = "bold 60px sans-serif"; ctx.textAlign = "center"; ctx.fillText("MR BOOT", width/2, 200); }
-            ctx.fillStyle="#4E342E"; ctx.font = "30px sans-serif"; ctx.textAlign="center"; ctx.fillText("SHOE LAUNDRY", width/2, 380);
-            
-            // Fetch Main Photo
-            try {
-                const q = query(collection(db, "images"), where("orderId", "==", id), where("type", "==", "main"));
-                const snap = await getDocs(q);
-                if(!snap.empty) {
-                    const blob = snap.docs[0].data().blob;
-                    const imgObj = new Image();
-                    imgObj.src = blob;
-                    await new Promise(r => imgObj.onload = r);
-                    ctx.drawImage(imgObj, width/2-250, 420, 500, 500 * (imgObj.height/imgObj.width));
-                }
-            } catch(e) {}
-
-            let y = 1000;
-            ctx.textAlign = "left"; ctx.fillStyle = "black"; ctx.font = "bold 40px sans-serif";
-            ctx.fillText(`ORDER #${o.seqId}`, 50, y);
-            ctx.textAlign = "right"; ctx.font = "30px sans-serif";
-            ctx.fillText(o.date, 850, y); y+=80;
-            
-            o.items.forEach(i => {
-                ctx.textAlign="left"; ctx.font="bold 35px sans-serif"; ctx.fillText(`${i.brand} ${i.type}`, 50, y);
-                ctx.textAlign="right"; ctx.fillText(i.price, 850, y); y+=45;
-                ctx.textAlign="left"; ctx.font="italic 30px sans-serif"; ctx.fillStyle="#555"; ctx.fillText(i.service, 50, y); y+=50; ctx.fillStyle="black";
-            });
-
-            const footerY = y + 50;
-            ctx.fillStyle='#F9F9F9'; ctx.fillRect(40, footerY, 820, 250);
-            ctx.fillStyle='#000'; ctx.font='36px sans-serif'; 
-            ctx.textAlign='left'; ctx.fillText('Total', 80, footerY+60); ctx.textAlign='right'; ctx.fillText(o.financials.total, 820, footerY+60);
-            ctx.textAlign='left'; ctx.fillText('Advance', 80, footerY+120); ctx.textAlign='right'; ctx.fillText(o.financials.advance, 820, footerY+120);
-            ctx.textAlign='left'; ctx.fillText('Balance', 80, footerY+200); ctx.textAlign='right'; ctx.fillText(o.financials.balance, 820, footerY+200);
-            
-            canvas.toBlob(blob => {
-                const a = document.createElement('a'); a.download = `bill_${o.seqId}.png`; a.href = URL.createObjectURL(blob); a.click();
-                setTimeout(() => { if(confirm("Bill Downloaded. Open WhatsApp now?")) window.sendWhatsApp(o.customer.phone, "Here is your bill (attach image)"); }, 1000);
-            });
-        };
-
-        // --- Helpers ---
-        window.renderReports = () => {
-            let rev=0, pend=0, prof=0;
-            window.orders.forEach(o => { rev+=o.financials.total; if(o.status!=='Completed') pend+=o.financials.balance; });
-            prof += rev;
-            document.getElementById('rep-revenue').innerText = rev;
-            document.getElementById('rep-pending').innerText = pend;
-            document.getElementById('rep-profit').innerText = prof;
-        };
-        window.renderCustomers = () => {
-            const el = document.getElementById('customers-list'); el.innerHTML = '';
-            Object.values(window.customers).forEach(c => { el.innerHTML += `<div class="card"><h3>${c.name}</h3><p>${c.phone}</p><p>Orders: ${c.count}</p></div>`; });
-        };
         window.switchView = (id, el) => {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById('view-'+id).classList.add('active');
@@ -654,7 +627,8 @@
             const el = document.getElementById('inventory-list'); el.innerHTML = window.inventory.map(i => `<div class="card" style="display:flex; justify-content:space-between;"><span>${i.name}</span><b>${i.qty}</b></div>`).join('');
         }
         window.populateStockDropdown = () => {
-            const s = document.getElementById('ord-stock-item'); s.innerHTML = '<option value="">-- Select --</option>'; window.inventory.forEach(i => s.innerHTML+=`<option value="${i.id}">${i.name}</option>`);
+            const s = document.getElementById('ord-stock-item');
+            s.innerHTML = '<option value="">-- Select --</option>'; window.inventory.forEach(i => s.innerHTML+=`<option value="${i.id}">${i.name}</option>`);
         }
         window.updateStockLabel = () => {}; 
         window.filterOrders = (status) => {
@@ -662,6 +636,77 @@
         }
         window.sendWhatsApp = (phone, text) => window.open(`https://wa.me/91${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
         window.openImageModal = (src) => { document.getElementById('preview-full-img').src=src; document.getElementById('modal-image-preview').classList.add('open'); };
+        
+        window.renderReports = () => {
+            let rev=0, pend=0, prof=0;
+            window.orders.forEach(o => { 
+                rev+=o.financials.total; 
+                if(o.status!=='Completed') pend+=o.financials.balance; 
+                if(o.delivery && o.delivery.porterCost) prof -= o.delivery.porterCost;
+            });
+            prof += rev;
+            document.getElementById('rep-revenue').innerText = rev;
+            document.getElementById('rep-pending').innerText = pend;
+            document.getElementById('rep-profit').innerText = prof;
+        };
+
+        window.renderCustomers = () => {
+            const el = document.getElementById('customers-list'); el.innerHTML = '';
+            Object.values(window.customers).forEach(c => { el.innerHTML += `<div class="card"><h3>${c.name}</h3><p>${c.phone}</p><p>Orders: ${c.count}</p></div>`; });
+        };
+
+        // Bill Logic
+        window.shareBill = async (id) => {
+            const o = window.orders.find(x => x.id === id);
+            const canvas = document.getElementById('billCanvas');
+            const ctx = canvas.getContext('2d');
+            const width = 900;
+            let h = 1300 + (o.items.length * 150);
+            canvas.width = width; canvas.height = h;
+            ctx.fillStyle = "white"; ctx.fillRect(0,0,width,h);
+            
+            const logoImg = document.getElementById('logo-img-res');
+            let logoDrawn = false;
+            try { if(logoImg.complete) { ctx.drawImage(logoImg, width/2 - 150, 50, 300, 300 * (logoImg.height/logoImg.width)); logoDrawn=true; }} catch(e){}
+            if(!logoDrawn) { ctx.fillStyle = "#4E342E"; ctx.font = "bold 60px sans-serif"; ctx.textAlign = "center"; ctx.fillText("MR BOOT", width/2, 200); }
+            ctx.fillStyle="#4E342E"; ctx.font = "30px sans-serif"; ctx.textAlign="center"; ctx.fillText("SHOE LAUNDRY", width/2, 380);
+            
+            // Try fetch Main Photo
+            try {
+                const q = query(collection(db, "images"), where("orderId", "==", id), where("type", "==", "main"));
+                const snap = await getDocs(q);
+                if(!snap.empty) {
+                    const blob = snap.docs[0].data().blob;
+                    const imgObj = new Image(); imgObj.src = blob;
+                    await new Promise(r => imgObj.onload = r);
+                    ctx.drawImage(imgObj, width/2-250, 420, 500, 500 * (imgObj.height/imgObj.width));
+                }
+            } catch(e) {}
+
+            let y = 1000;
+            ctx.textAlign = "left"; ctx.fillStyle = "black"; ctx.font = "bold 40px sans-serif";
+            ctx.fillText(`ORDER #${o.seqId}`, 50, y);
+            ctx.textAlign = "right"; ctx.font = "30px sans-serif";
+            ctx.fillText(o.date, 850, y); y+=80;
+            
+            o.items.forEach(i => {
+                ctx.textAlign="left"; ctx.font="bold 35px sans-serif"; ctx.fillText(`${i.brand} ${i.type}`, 50, y);
+                ctx.textAlign="right"; ctx.fillText(i.price, 850, y); y+=45;
+                ctx.textAlign="left"; ctx.font="italic 30px sans-serif"; ctx.fillStyle="#555"; ctx.fillText(i.service, 50, y); y+=50; ctx.fillStyle="black";
+            });
+
+            const footerY = y + 50;
+            ctx.fillStyle='#F9F9F9'; ctx.fillRect(40, footerY, 820, 250);
+            ctx.fillStyle='#000'; ctx.font='36px sans-serif'; 
+            ctx.textAlign='left'; ctx.fillText('Total', 80, footerY+60); ctx.textAlign='right'; ctx.fillText(o.financials.total, 820, footerY+60);
+            ctx.textAlign='left'; ctx.fillText('Advance', 80, footerY+120); ctx.textAlign='right'; ctx.fillText(o.financials.advance, 820, footerY+120);
+            ctx.textAlign='left'; ctx.fillText('Balance', 80, footerY+200); ctx.textAlign='right'; ctx.fillText(o.financials.balance, 820, footerY+200);
+            
+            canvas.toBlob(blob => {
+                const a = document.createElement('a'); a.download = `bill_${o.seqId}.png`; a.href = URL.createObjectURL(blob); a.click();
+                setTimeout(() => { if(confirm("Bill Downloaded. Open WhatsApp now?")) window.sendWhatsApp(o.customer.phone, "Here is your bill (attach image)"); }, 1000);
+            });
+        };
 
         onAuthStateChanged(auth, user => { if(user) { document.getElementById('login-screen').classList.add('hidden'); document.getElementById('db-status').style.background = '#34C759'; initListeners(); }});
         function initListeners() {
