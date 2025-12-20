@@ -372,7 +372,7 @@
                 <label>Additional Photos</label>
                 <input type="file" id="ord-images" multiple accept="image/*">
 
-                <select id="ord-stock-item" style="margin-top:12px;"><option value="">-- Select Add-on --</option></select>
+                <select id="ord-stock-item" style="margin-top:12px;" onchange="window.calcBalance()"><option value="">-- Select Add-on --</option></select>
                 <label style="margin-top:16px;">Delivery</label>
                 <select id="ord-delivery-mode" onchange="window.toggleDeliveryFields()"><option value="Walk-in">Walk-in</option><option value="Pickup">Pickup & Drop</option></select>
                 <div id="delivery-fields" class="hidden">
@@ -403,12 +403,65 @@
         <div class="modal-header">
             <h3>Details</h3>
             <div style="display:flex; gap:16px; align-items:center;">
+                <button class="close-btn" id="edit-order-btn" onclick="window.editOrder()" style="background:none; color:#007AFF; font-size:24px; padding:0;">✏️</button>
                 <button class="close-btn" onclick="window.deleteOrder()" style="background:none; color:#FF3B30; font-size:24px; padding:0;">🗑️</button>
                 <button class="close-btn" onclick="window.closeModal('modal-view-order')">&times;</button>
             </div>
         </div>
         <div class="modal-body" id="view-order-content"></div>
         <div style="padding:16px; border-top:1px solid #eee;" id="order-action-bar" class="flex-row"></div>
+    </div>
+    
+    <!-- EDIT ORDER MODAL -->
+    <div id="modal-edit-order" class="modal">
+        <div class="modal-header">
+            <h3>Edit Order</h3>
+            <button class="close-btn" onclick="window.closeModal('modal-edit-order')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="edit-order-form">
+                <div class="card" style="background:#F9F9F9; border:none;">
+                    <label>Customer</label>
+                    <input type="tel" id="edit-ord-phone" placeholder="Mobile" required>
+                    <input type="text" id="edit-ord-name" placeholder="Name" required>
+                    <textarea id="edit-ord-address" rows="2" placeholder="Address"></textarea>
+                </div>
+                
+                <div style="background:#FFF3E0; padding:10px; border-radius:10px; margin-bottom:16px;">
+                    <label style="color:#E65100;">Due Date</label>
+                    <input type="date" id="edit-ord-date-delivery" style="margin:0; background:white;">
+                </div>
+                
+                <label>Status</label>
+                <select id="edit-ord-status" style="margin-bottom:16px;">
+                    <option value="Pending">Pending</option>
+                    <option value="Ready">Ready</option>
+                    <option value="Completed">Completed</option>
+                </select>
+                
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <label>Items</label>
+                    <button type="button" class="btn btn-primary" style="width:auto; padding:6px 12px; margin:0; font-size:12px;" onclick="window.addEditOrderItem()">+ Add Item</button>
+                </div>
+                <div id="edit-order-items-container"></div>
+                
+                <label style="margin-top:16px;">Billing</label>
+                <div class="flex-row">
+                    <input type="number" id="edit-ord-item-total" placeholder="Subtotal" readonly style="background:#eee;">
+                    <input type="number" id="edit-ord-advance" placeholder="Advance" oninput="window.calcEditBalance()">
+                </div>
+                <div style="text-align:right; font-weight:bold; font-size:18px; margin-bottom:16px;">
+                    Balance: <span id="edit-ord-balance" style="color:var(--danger)">0</span>
+                </div>
+                <select id="edit-ord-paymode">
+                    <option>Cash</option>
+                    <option>UPI</option>
+                    <option>Card</option>
+                </select>
+                
+                <button type="button" class="btn btn-primary" onclick="window.saveEditedOrder()">Save Changes</button>
+            </form>
+        </div>
     </div>
 
     <div id="modal-proof" class="modal">
@@ -690,6 +743,20 @@
                 const deliveryCharge = parseFloat(document.getElementById('ord-delivery-charge').value)||0;
                 const advance = parseFloat(document.getElementById('ord-advance').value)||0;
                 
+                // Get add-on price if selected
+                let addonPrice = 0;
+                let addonName = '';
+                const stockId = document.getElementById('ord-stock-item').value;
+                if(stockId) {
+                    const stockItem = window.inventory.find(i => i.id === stockId);
+                    if(stockItem) {
+                        addonPrice = parseFloat(stockItem.price) || 0;
+                        addonName = stockItem.name;
+                    }
+                }
+                
+                const finalTotal = itemTotal + deliveryCharge + addonPrice;
+                
                 const orderData = {
                     seqId, timestamp: Date.now(),
                     date: new Date().toLocaleDateString(),
@@ -707,13 +774,16 @@
                     },
                     financials: { 
                         itemTotal, 
-                        total: itemTotal+deliveryCharge, 
+                        addonPrice,
+                        addonName,
+                        deliveryCharge,
+                        total: finalTotal, 
                         advance, 
-                        balance: (itemTotal+deliveryCharge)-advance, 
+                        balance: finalTotal - advance, 
                         mode: document.getElementById('ord-paymode').value 
                     },
                     status: 'Pending',
-                    stockUsed: document.getElementById('ord-stock-item').value || null
+                    stockUsed: stockId || null
                 };
 
                 const docRef = await addDoc(collection(db, "orders"), orderData);
@@ -794,7 +864,14 @@
             const content = document.getElementById('view-order-content');
             const actions = document.getElementById('order-action-bar');
             let itemsHtml = o.items.map(i => `<div style="border-bottom:1px solid #eee; padding:8px 0;"><b>${i.brand} ${i.type}</b><br><small>${i.service}</small></div>`).join('');
-            content.innerHTML = `<div style="text-align:center; margin-bottom:16px;"><div id="view-order-main-photo" style="width:100%; height:200px; background:#f0f0f0; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; overflow:hidden;">Loading Photo...</div><h2>${o.customer.name}</h2><a href="tel:${o.customer.phone}" style="color:var(--info);">${o.customer.phone}</a></div><div class="card" style="background:#fafafa;">${itemsHtml}</div><div style="display:flex; justify-content:space-between; margin-top:16px;"><span>Total: <b>${o.financials.total}</b></span><span>Balance: <b style="color:${o.financials.balance>0?'red':'green'}">${o.financials.balance}</b></span></div><div id="view-order-intake-images" class="img-grid" style="margin-top:16px;"></div>${o.status === 'Completed' ? `<h4 style="margin-top:10px; color:green;">Proof</h4><div id="view-order-proof-images" class="img-grid"></div>` : ''}`;
+            
+            // Add add-on display if present
+            let addonHtml = '';
+            if(o.financials.addonPrice && o.financials.addonPrice > 0) {
+                addonHtml = `<div style="background:#E5F1FF; padding:10px; border-radius:8px; margin-top:10px;"><b style="color:#007AFF;">Add-on: ${o.financials.addonName || 'Item'}</b><br><small>₹${o.financials.addonPrice}</small></div>`;
+            }
+            
+            content.innerHTML = `<div style="text-align:center; margin-bottom:16px;"><div id="view-order-main-photo" style="width:100%; height:200px; background:#f0f0f0; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; overflow:hidden;">Loading Photo...</div><h2>${o.customer.name}</h2><a href="tel:${o.customer.phone}" style="color:var(--info);">${o.customer.phone}</a></div><div class="card" style="background:#fafafa;">${itemsHtml}${addonHtml}</div><div style="display:flex; justify-content:space-between; margin-top:16px;"><span>Total: <b>₹${o.financials.total}</b></span><span>Balance: <b style="color:${o.financials.balance>0?'red':'green'}">₹${o.financials.balance}</b></span></div><div id="view-order-intake-images" class="img-grid" style="margin-top:16px;"></div>${o.status === 'Completed' ? `<h4 style="margin-top:10px; color:green;">Proof</h4><div id="view-order-proof-images" class="img-grid"></div>` : ''}`;
 
             // Load Images (Cloud) - Using STRING ID match
             const q = query(collection(db, "images"), where("orderId", "==", String(id)));
@@ -922,8 +999,24 @@
             if(currentServiceInput) currentServiceInput.value = vals.join(', '); window.closeModal('modal-service-selector');
         }
         window.calcBalance = () => {
-            let total = 0; document.querySelectorAll('.item-price').forEach(i => total += (parseFloat(i.value)||0)); document.getElementById('ord-item-total').value = total;
-            const del = parseFloat(document.getElementById('ord-delivery-charge').value)||0; const adv = parseFloat(document.getElementById('ord-advance').value)||0; document.getElementById('ord-balance').innerText = (total + del - adv);
+            let total = 0; 
+            document.querySelectorAll('.item-price').forEach(i => total += (parseFloat(i.value)||0)); 
+            document.getElementById('ord-item-total').value = total;
+            
+            const del = parseFloat(document.getElementById('ord-delivery-charge').value)||0; 
+            const adv = parseFloat(document.getElementById('ord-advance').value)||0;
+            
+            // Add add-on price
+            let addonPrice = 0;
+            const stockId = document.getElementById('ord-stock-item').value;
+            if(stockId) {
+                const stockItem = window.inventory.find(i => i.id === stockId);
+                if(stockItem) {
+                    addonPrice = parseFloat(stockItem.price) || 0;
+                }
+            }
+            
+            document.getElementById('ord-balance').innerText = (total + del + addonPrice - adv);
         }
         window.toggleDeliveryFields = () => {
             const mode = document.getElementById('ord-delivery-mode').value; document.getElementById('delivery-fields').style.display = mode === 'Pickup' ? 'block' : 'none';
@@ -1008,16 +1101,17 @@
                         <span style="font-size:12px; color:#888;">${o.date}</span>
                     </div>
                     <p style="margin:4px 0 8px 0; font-size:14px;">${itemText}</p>
-                    <div style="display:flex; gap:10px;">
+                    <div style="display:flex; gap:10px; margin-bottom:10px;">
                         <div style="flex:1;">
-                            <span style="font-size:10px; text-transform:uppercase; color:#666;">Intake</span>
+                            <span style="font-size:10px; text-transform:uppercase; color:#666;">Before</span>
                             <div id="hist-intake-${o.id}" class="img-grid" style="height:50px;"></div>
                         </div>
                         <div style="flex:1;">
-                            <span style="font-size:10px; text-transform:uppercase; color:#34C759;">Completed</span>
+                            <span style="font-size:10px; text-transform:uppercase; color:#34C759;">After</span>
                             <div id="hist-proof-${o.id}" class="img-grid" style="height:50px;"></div>
                         </div>
                     </div>
+                    <button class="btn btn-outline" onclick="window.viewHistoricalBill('${o.id}')" style="margin:0; padding:8px; font-size:12px;">📄 View Bill</button>
                  `;
                  el.appendChild(div);
                  
@@ -1030,12 +1124,173 @@
                          const d = doc.data();
                          const img = `<img src="${d.blob}" class="img-thumb" onclick="window.openImageModal('${d.blob}')">`;
                          if(d.type === 'intake' && inC) inC.innerHTML += img;
+                         if(d.type === 'main' && inC) inC.innerHTML += img;
                          if(d.type === 'proof' && prC) prC.innerHTML += img;
                      });
                  });
             });
             document.getElementById('modal-customer-history').classList.add('open');
         }
+        
+        // View historical bill
+        window.viewHistoricalBill = async (orderId) => {
+            await window.shareBill(orderId);
+        };
+        
+        // Edit Order Functions
+        let currentEditOrderId = null;
+        
+        window.editOrder = () => {
+            if (!viewingOrderId) return;
+            
+            const o = window.orders.find(x => x.id === viewingOrderId);
+            if (!o) return;
+            
+            currentEditOrderId = viewingOrderId;
+            
+            // Populate form
+            document.getElementById('edit-ord-phone').value = o.customer.phone;
+            document.getElementById('edit-ord-name').value = o.customer.name;
+            document.getElementById('edit-ord-address').value = o.customer.address || '';
+            document.getElementById('edit-ord-date-delivery').value = o.deliveryDate || '';
+            document.getElementById('edit-ord-status').value = o.status;
+            document.getElementById('edit-ord-advance').value = o.financials.advance;
+            document.getElementById('edit-ord-paymode').value = o.financials.mode || 'Cash';
+            
+            // Populate items
+            const container = document.getElementById('edit-order-items-container');
+            container.innerHTML = '';
+            if (o.items && o.items.length > 0) {
+                o.items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'item-row';
+                    div.innerHTML = `
+                        <button type="button" class="remove-item" onclick="this.parentElement.remove(); window.calcEditBalance();">&times;</button>
+                        <div class="flex-row">
+                            <input type="text" class="edit-item-brand" placeholder="Brand" value="${item.brand || ''}">
+                            <select class="edit-item-type">
+                                <option ${item.type === 'Sneaker' ? 'selected' : ''}>Sneaker</option>
+                                <option ${item.type === 'Sport Shoe' ? 'selected' : ''}>Sport Shoe</option>
+                                <option ${item.type === 'Formals' ? 'selected' : ''}>Formals</option>
+                                <option ${item.type === 'Boots' ? 'selected' : ''}>Boots</option>
+                                <option ${item.type === 'Heels' ? 'selected' : ''}>Heels</option>
+                                <option ${item.type === 'Sandals' ? 'selected' : ''}>Sandals</option>
+                                <option ${item.type === 'Bags' ? 'selected' : ''}>Bags</option>
+                                <option ${item.type === 'Jackets' ? 'selected' : ''}>Jackets</option>
+                                <option ${item.type === 'Other' ? 'selected' : ''}>Other</option>
+                            </select>
+                        </div>
+                        <input type="text" class="edit-item-service" placeholder="Select Services" readonly onclick="window.openEditServiceSelector(this)" style="cursor:pointer; background:white;" value="${item.service || ''}">
+                        <div class="flex-row">
+                            <input type="text" class="edit-item-specs" placeholder="Specs" value="${item.specs || ''}">
+                            <input type="number" class="edit-item-price" placeholder="Price" oninput="window.calcEditBalance()" value="${item.price || 0}">
+                        </div>
+                    `;
+                    container.appendChild(div);
+                });
+            } else {
+                window.addEditOrderItem();
+            }
+            
+            window.calcEditBalance();
+            window.closeModal('modal-view-order');
+            document.getElementById('modal-edit-order').classList.add('open');
+        };
+        
+        window.addEditOrderItem = () => {
+            const div = document.createElement('div');
+            div.className = 'item-row';
+            div.innerHTML = `
+                <button type="button" class="remove-item" onclick="this.parentElement.remove(); window.calcEditBalance();">&times;</button>
+                <div class="flex-row">
+                    <input type="text" class="edit-item-brand" placeholder="Brand">
+                    <select class="edit-item-type">
+                        <option>Sneaker</option>
+                        <option>Sport Shoe</option>
+                        <option>Formals</option>
+                        <option>Boots</option>
+                        <option>Heels</option>
+                        <option>Sandals</option>
+                        <option>Bags</option>
+                        <option>Jackets</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <input type="text" class="edit-item-service" placeholder="Select Services" readonly onclick="window.openEditServiceSelector(this)" style="cursor:pointer; background:white;">
+                <div class="flex-row">
+                    <input type="text" class="edit-item-specs" placeholder="Specs">
+                    <input type="number" class="edit-item-price" placeholder="Price" oninput="window.calcEditBalance()">
+                </div>
+            `;
+            document.getElementById('edit-order-items-container').appendChild(div);
+        };
+        
+        window.openEditServiceSelector = (el) => {
+            currentServiceInput = el;
+            const container = document.getElementById('service-options-container');
+            container.innerHTML = '';
+            const current = el.value.split(', ').filter(s => s);
+            ALL_SERVICES.forEach(s => {
+                container.innerHTML += `<label class="service-option-label"><input type="checkbox" value="${s}" ${current.includes(s) ? 'checked' : ''}><span class="service-text">${s}</span><div class="service-tick"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div></label>`;
+            });
+            document.getElementById('modal-service-selector').classList.add('open');
+        };
+        
+        window.calcEditBalance = () => {
+            let total = 0;
+            document.querySelectorAll('.edit-item-price').forEach(i => total += (parseFloat(i.value) || 0));
+            document.getElementById('edit-ord-item-total').value = total;
+            const adv = parseFloat(document.getElementById('edit-ord-advance').value) || 0;
+            document.getElementById('edit-ord-balance').innerText = total - adv;
+        };
+        
+        window.saveEditedOrder = async () => {
+            if (!currentEditOrderId) return;
+            
+            try {
+                const items = [];
+                document.querySelectorAll('#edit-order-items-container .item-row').forEach(r => {
+                    items.push({
+                        brand: r.querySelector('.edit-item-brand').value,
+                        type: r.querySelector('.edit-item-type').value,
+                        service: r.querySelector('.edit-item-service').value,
+                        specs: r.querySelector('.edit-item-specs').value,
+                        price: parseFloat(r.querySelector('.edit-item-price').value) || 0
+                    });
+                });
+                
+                if (!items.length) return alert("Add at least one item");
+                
+                const itemTotal = parseFloat(document.getElementById('edit-ord-item-total').value);
+                const advance = parseFloat(document.getElementById('edit-ord-advance').value) || 0;
+                
+                const updates = {
+                    'customer.name': document.getElementById('edit-ord-name').value,
+                    'customer.phone': document.getElementById('edit-ord-phone').value,
+                    'customer.address': document.getElementById('edit-ord-address').value,
+                    'deliveryDate': document.getElementById('edit-ord-date-delivery').value,
+                    'status': document.getElementById('edit-ord-status').value,
+                    'items': items,
+                    'financials.itemTotal': itemTotal,
+                    'financials.total': itemTotal,
+                    'financials.advance': advance,
+                    'financials.balance': itemTotal - advance,
+                    'financials.mode': document.getElementById('edit-ord-paymode').value
+                };
+                
+                await updateDoc(doc(db, "orders", currentEditOrderId), updates);
+                
+                window.closeModal('modal-edit-order');
+                alert("Order updated successfully!");
+                
+                // Reopen the view modal
+                setTimeout(() => window.openViewOrder(currentEditOrderId), 300);
+                
+            } catch(e) {
+                alert("Error updating order: " + e.message);
+                console.error(e);
+            }
+        };
 
         // ============================================
         // NEW BILL GENERATION (MATCHING IMAGE DESIGN)
@@ -1286,11 +1541,45 @@
                 });
             }
             
+            // Add Add-on item if present
+            if(o.financials.addonPrice && o.financials.addonPrice > 0) {
+                const rowHeight = 80;
+                
+                ctx.fillStyle = "#007AFF";
+                ctx.font = "bold 32px Arial";
+                const addonText = `Add-on: ${o.financials.addonName || 'Item'}`;
+                ctx.fillText(addonText, tableX + 20, y + 25);
+                
+                ctx.fillStyle = "#000000";
+                ctx.font = "32px Arial";
+                
+                // Rate
+                ctx.fillText(`₹${o.financials.addonPrice}`, tableX + colWidths[0], y + 25);
+                
+                // Quantity
+                ctx.fillText("1", tableX + colWidths[0] + colWidths[1] + 40, y + 25);
+                
+                // Amount
+                ctx.textAlign = "right";
+                ctx.fillText(`₹${o.financials.addonPrice}`, width - 80, y + 25);
+                ctx.textAlign = "left";
+                
+                y += rowHeight;
+                
+                // Draw line
+                ctx.strokeStyle = "#EEEEEE";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(tableX, y);
+                ctx.lineTo(width - 60, y);
+                ctx.stroke();
+            }
+            
             y += 40;
             
             // ===== BILLING SUMMARY BOX =====
             const summaryBoxY = y;
-            const summaryBoxHeight = 280;
+            const summaryBoxHeight = 380; // Increased height for add-on and delivery lines
             const summaryBoxWidth = 500;
             const summaryBoxX = width - 60 - summaryBoxWidth;
             
@@ -1318,10 +1607,46 @@
             summaryY += 50;
             ctx.font = "32px Arial";
             
-            // Subtotal
-            ctx.fillText("Subtotal:", summaryBoxX + 30, summaryY);
+            // Subtotal (Services only)
+            ctx.fillText("Services:", summaryBoxX + 30, summaryY);
             ctx.textAlign = "right";
             ctx.fillText(`₹${o.financials.itemTotal || o.financials.total}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
+            
+            summaryY += 45;
+            ctx.textAlign = "left";
+            
+            // Add-on (if present)
+            if(o.financials.addonPrice && o.financials.addonPrice > 0) {
+                ctx.fillText(`Add-on (${o.financials.addonName || 'Item'}):`, summaryBoxX + 30, summaryY);
+                ctx.textAlign = "right";
+                ctx.fillText(`₹${o.financials.addonPrice}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
+                summaryY += 45;
+                ctx.textAlign = "left";
+            }
+            
+            // Delivery Charge (if present)
+            if(o.financials.deliveryCharge && o.financials.deliveryCharge > 0) {
+                ctx.fillText("Delivery:", summaryBoxX + 30, summaryY);
+                ctx.textAlign = "right";
+                ctx.fillText(`₹${o.financials.deliveryCharge}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
+                summaryY += 45;
+                ctx.textAlign = "left";
+            }
+            
+            // Draw separator line
+            ctx.strokeStyle = "#DDDDDD";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(summaryBoxX + 30, summaryY);
+            ctx.lineTo(summaryBoxX + summaryBoxWidth - 30, summaryY);
+            ctx.stroke();
+            
+            summaryY += 40;
+            
+            // Subtotal line
+            ctx.fillText("Subtotal:", summaryBoxX + 30, summaryY);
+            ctx.textAlign = "right";
+            ctx.fillText(`₹${o.financials.total}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
             
             summaryY += 45;
             ctx.textAlign = "left";
@@ -1331,7 +1656,17 @@
             ctx.textAlign = "right";
             ctx.fillText(`₹${o.financials.advance}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
             
-            summaryY += 45;
+            summaryY += 20;
+            
+            // Draw separator line
+            ctx.strokeStyle = "#DDDDDD";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(summaryBoxX + 30, summaryY);
+            ctx.lineTo(summaryBoxX + summaryBoxWidth - 30, summaryY);
+            ctx.stroke();
+            
+            summaryY += 40;
             ctx.textAlign = "left";
             
             // Balance Amount
@@ -1384,7 +1719,18 @@
             ctx.fillStyle = "#34C759";
             ctx.font = "bold 36px Arial";
             ctx.fillText("Contact: +91 9028983659", width/2, y);
-;
+            
+            // QR Code placeholder (you can add actual QR generation if needed)
+            const qrSize = 100;
+            const qrX = width - 60 - qrSize;
+            const qrY = height - 180;
+            ctx.fillStyle = "#000000";
+            ctx.fillRect(qrX, qrY, qrSize, qrSize);
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = "14px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText("Scan for", qrX + qrSize/2, qrY + qrSize + 20);
+            ctx.fillText("Payment/Details", qrX + qrSize/2, qrY + qrSize + 40);
             
             // Download the bill
             canvas.toBlob(blob => {
