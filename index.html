@@ -6,7 +6,7 @@
     <title>Mr Boot Manager (Online)</title>
     <style>
         :root {
-            /* Palette - Premium Leather & Modern UI */
+            /* Palette */
             --primary: #4E342E; 
             --primary-dark: #281A16;
             --accent: #D7CCC8;
@@ -43,14 +43,6 @@
             color: white; padding: 24px; transition: transform 0.3s ease-in-out;
         }
         #login-screen.hidden { transform: translateY(-100%); }
-        .user-card {
-            background: white; color: var(--text-main); width: 100%; max-width: 320px;
-            padding: 20px; border-radius: 20px; margin-bottom: 16px;
-            display: flex; align-items: center; gap: 16px; cursor: pointer;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: transform 0.1s;
-        }
-        .user-card:active { transform: scale(0.98); }
 
         /* Layout */
         header {
@@ -114,7 +106,7 @@
         .btn-primary { background: var(--primary); color: white; }
         .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
         .btn-whatsapp { background: #25D366; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; background: #999; }
         
         .flex-row { display: flex; gap: 10px; }
         .hidden { display: none !important; }
@@ -150,6 +142,12 @@
         .service-tick svg { width: 16px; height: 16px; opacity: 0; transform: scale(0.5); transition: all 0.2s; }
         .service-option-label input:checked ~ .service-tick svg { opacity: 1; transform: scale(1); }
     </style>
+    <!-- GLOBAL ERROR HANDLER FOR MOBILE -->
+    <script>
+        window.onerror = function(msg, url, line) {
+            alert("App Error: " + msg + "\nLine: " + line);
+        };
+    </script>
 </head>
 <body>
 
@@ -158,16 +156,15 @@
         <h1 style="font-size:32px; margin-bottom:40px;">Mr Boot</h1>
         <div class="card" style="width:100%; max-width:320px; background:white; color:#333;">
             <h3 style="margin-top:0;">Admin Login</h3>
-            <p style="font-size:12px; color:#666;">Data syncs automatically across devices.</p>
+            <p style="font-size:12px; color:#666;">Data syncs automatically.</p>
             <input type="password" id="login-pin" placeholder="Enter PIN (Default: 1234)" style="margin-bottom:16px; border:1px solid #ddd;">
-            <button class="btn btn-primary" onclick="attemptLogin()">Enter Shop</button>
+            <button id="login-btn" class="btn btn-primary" onclick="window.attemptLogin()" disabled>Loading System...</button>
         </div>
     </div>
 
     <!-- HEADER -->
     <header>
         <div style="display:flex; align-items:center; gap:10px;">
-            <!-- Logo -->
             <img id="header-logo" src="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png" class="header-logo" onerror="this.style.display='none'; document.getElementById('header-text').style.display='block';">
             <div id="header-text" class="app-title" style="display:none;">
                 <h1>Mr Boot</h1>
@@ -189,15 +186,15 @@
             </div>
 
             <div class="flex-row" style="overflow-x:auto; padding-bottom:8px; margin-bottom:8px;">
-                <button class="badge" style="background:var(--primary); color:white; border:none;" onclick="filterOrders('All')">All</button>
-                <button class="badge bg-pending" style="border:none;" onclick="filterOrders('Pending')">Pending</button>
-                <button class="badge bg-ready" style="border:none;" onclick="filterOrders('Ready')">Ready</button>
-                <button class="badge bg-completed" style="border:none;" onclick="filterOrders('Completed')">Done</button>
+                <button class="badge" style="background:var(--primary); color:white; border:none;" onclick="window.filterOrders('All')">All</button>
+                <button class="badge bg-pending" style="border:none;" onclick="window.filterOrders('Pending')">Pending</button>
+                <button class="badge bg-ready" style="border:none;" onclick="window.filterOrders('Ready')">Ready</button>
+                <button class="badge bg-completed" style="border:none;" onclick="window.filterOrders('Completed')">Done</button>
             </div>
             
             <div id="orders-list"></div>
             
-            <button class="fab" onclick="openOrderModal()">
+            <button class="fab" onclick="window.openOrderModal()">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
             </button>
         </section>
@@ -211,7 +208,7 @@
         <section id="view-inventory" class="view">
             <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
                 <h3>Add-ons / Stock</h3>
-                <button class="btn btn-primary" style="width:auto; margin:0; padding:8px 16px; font-size:12px;" onclick="openInventoryModal()">+ Add Item</button>
+                <button class="btn btn-primary" style="width:auto; margin:0; padding:8px 16px; font-size:12px;" onclick="window.openInventoryModal()">+ Add Item</button>
             </div>
             <div id="inventory-list"></div>
         </section>
@@ -235,27 +232,27 @@
 
     <!-- NAV -->
     <nav>
-        <a href="#" class="nav-item active" onclick="switchView('orders', this)">
+        <a href="#" class="nav-item active" onclick="window.switchView('orders', this)">
             <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
             <span>Orders</span>
         </a>
-        <a href="#" class="nav-item" onclick="switchView('customers', this)">
+        <a href="#" class="nav-item" onclick="window.switchView('customers', this)">
             <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             <span>Customers</span>
         </a>
-        <a href="#" class="nav-item" id="nav-inventory" onclick="switchView('inventory', this)">
+        <a href="#" class="nav-item" id="nav-inventory" onclick="window.switchView('inventory', this)">
             <svg viewBox="0 0 24 24"><path d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
             <span>Add-ons</span>
         </a>
-        <a href="#" class="nav-item" id="nav-reports" onclick="switchView('reports', this)">
+        <a href="#" class="nav-item" id="nav-reports" onclick="window.switchView('reports', this)">
             <svg viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
             <span>Reports</span>
         </a>
     </nav>
 
-    <!-- ORDER MODAL -->
+    <!-- MODALS -->
     <div id="modal-order" class="modal">
-        <div class="modal-header"><h3>New Order</h3><button class="close-btn" onclick="closeModal('modal-order')">&times;</button></div>
+        <div class="modal-header"><h3>New Order</h3><button class="close-btn" onclick="window.closeModal('modal-order')">&times;</button></div>
         <div class="modal-body">
             <form id="order-form">
                 <div class="card" style="background:#F9F9F9; border:none;">
@@ -270,7 +267,7 @@
                 </div>
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <label>Items</label>
-                    <button type="button" class="btn btn-primary" style="width:auto; padding:6px 12px; margin:0; font-size:12px;" onclick="addOrderItem()">+ Add Shoe</button>
+                    <button type="button" class="btn btn-primary" style="width:auto; padding:6px 12px; margin:0; font-size:12px;" onclick="window.addOrderItem()">+ Add Shoe</button>
                 </div>
                 <div id="order-items-container"></div>
 
@@ -284,37 +281,37 @@
 
                 <select id="ord-stock-item" style="margin-top:12px;"><option value="">-- Select Add-on --</option></select>
                 <label style="margin-top:16px;">Delivery</label>
-                <select id="ord-delivery-mode" onchange="toggleDeliveryFields()"><option value="Walk-in">Walk-in</option><option value="Pickup">Pickup & Drop</option></select>
+                <select id="ord-delivery-mode" onchange="window.toggleDeliveryFields()"><option value="Walk-in">Walk-in</option><option value="Pickup">Pickup & Drop</option></select>
                 <div id="delivery-fields" class="hidden">
                     <input type="number" id="ord-porter-cost" placeholder="Porter Cost (Expense)">
-                    <input type="number" id="ord-delivery-charge" placeholder="Delivery Charge (Income)" oninput="calcBalance()">
+                    <input type="number" id="ord-delivery-charge" placeholder="Delivery Charge (Income)" oninput="window.calcBalance()">
                 </div>
                 <label>Billing</label>
                 <div class="flex-row">
                     <input type="number" id="ord-item-total" placeholder="Subtotal" readonly style="background:#eee;">
-                    <input type="number" id="ord-advance" placeholder="Advance" oninput="calcBalance()">
+                    <input type="number" id="ord-advance" placeholder="Advance" oninput="window.calcBalance()">
                 </div>
                 <div style="text-align:right; font-weight:bold; font-size:18px; margin-bottom:16px;">
                     Balance: <span id="ord-balance" style="color:var(--danger)">0</span>
                 </div>
                 <select id="ord-paymode"><option>Cash</option><option>UPI</option><option>Card</option></select>
-                <button type="button" class="btn btn-primary" id="save-order-btn" onclick="saveOrder(event)">Save Order</button>
+                <button type="button" class="btn btn-primary" id="save-order-btn" onclick="window.saveOrder(event)">Save Order</button>
             </form>
         </div>
     </div>
 
     <div id="modal-service-selector" class="modal" style="z-index: 3100;">
-        <div class="modal-header"><h3>Select Services</h3><button class="close-btn" onclick="closeModal('modal-service-selector')">&times;</button></div>
+        <div class="modal-header"><h3>Select Services</h3><button class="close-btn" onclick="window.closeModal('modal-service-selector')">&times;</button></div>
         <div class="modal-body" id="service-options-container" style="padding:0;"></div>
-        <div style="padding:16px; border-top:1px solid #eee;"><button class="btn btn-primary" onclick="saveServiceSelection()">Confirm</button></div>
+        <div style="padding:16px; border-top:1px solid #eee;"><button class="btn btn-primary" onclick="window.saveServiceSelection()">Confirm</button></div>
     </div>
 
     <div id="modal-view-order" class="modal">
         <div class="modal-header">
             <h3>Details</h3>
             <div style="display:flex; gap:16px; align-items:center;">
-                <button class="close-btn" onclick="deleteOrder()" style="background:none; color:#FF3B30; font-size:24px; padding:0;">🗑️</button>
-                <button class="close-btn" onclick="closeModal('modal-view-order')">&times;</button>
+                <button class="close-btn" onclick="window.deleteOrder()" style="background:none; color:#FF3B30; font-size:24px; padding:0;">🗑️</button>
+                <button class="close-btn" onclick="window.closeModal('modal-view-order')">&times;</button>
             </div>
         </div>
         <div class="modal-body" id="view-order-content"></div>
@@ -322,18 +319,18 @@
     </div>
 
     <div id="modal-proof" class="modal">
-        <div class="modal-header"><h3>Complete</h3><button class="close-btn" onclick="closeModal('modal-proof')">&times;</button></div>
+        <div class="modal-header"><h3>Complete</h3><button class="close-btn" onclick="window.closeModal('modal-proof')">&times;</button></div>
         <div class="modal-body">
             <p>Upload completion proof:</p>
             <input type="file" id="proof-image" accept="image/*">
-            <button class="btn btn-primary" onclick="saveProofAndComplete()">Complete</button>
+            <button class="btn btn-primary" onclick="window.saveProofAndComplete()">Complete</button>
         </div>
     </div>
 
     <div id="modal-inventory" class="modal">
-        <div class="modal-header"><h3>Add Item</h3><button class="close-btn" onclick="closeModal('modal-inventory')">&times;</button></div>
+        <div class="modal-header"><h3>Add Item</h3><button class="close-btn" onclick="window.closeModal('modal-inventory')">&times;</button></div>
         <div class="modal-body">
-            <form onsubmit="saveInventory(event)">
+            <form onsubmit="window.saveInventory(event)">
                 <input type="text" id="inv-name" placeholder="Item Name" required>
                 <input type="text" id="inv-brand" placeholder="Brand" required>
                 <input type="number" id="inv-qty" placeholder="Qty" required>
@@ -344,12 +341,12 @@
     </div>
 
     <div id="modal-customer-history" class="modal">
-        <div class="modal-header"><h3>History</h3><button class="close-btn" onclick="closeModal('modal-customer-history')">&times;</button></div>
+        <div class="modal-header"><h3>History</h3><button class="close-btn" onclick="window.closeModal('modal-customer-history')">&times;</button></div>
         <div class="modal-body" id="customer-history-content"></div>
     </div>
 
     <div id="modal-image-preview" class="modal" style="z-index: 4000;">
-        <div class="modal-header"><h3>View</h3><button class="close-btn" onclick="closeModal('modal-image-preview')">&times;</button></div>
+        <div class="modal-header"><h3>View</h3><button class="close-btn" onclick="window.closeModal('modal-image-preview')">&times;</button></div>
         <div class="modal-body" style="background:#000; display:flex; align-items:center; justify-content:center;">
             <img id="preview-full-img" style="max-width:100%; max-height:80vh;">
         </div>
@@ -360,7 +357,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // FIREBASE CONFIG
+        // FIREBASE CONFIG - USER PROVIDED
         const firebaseConfig = {
             apiKey: "AIzaSyAFyPxYstLeXFCZkoCJr8NeFRvazMeEju4",
             authDomain: "boot-7e65c.firebaseapp.com",
@@ -375,7 +372,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // Globals
         window.orders = [];
         window.inventory = [];
         window.customers = {};
@@ -390,7 +386,6 @@
             try { await signInAnonymously(auth); } catch(e) { alert("Login error: " + e.message); }
         };
 
-        // Compress
         const compressImage = (file) => {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -401,7 +396,7 @@
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
                         const ctx = canvas.getContext('2d');
-                        const max = 600; // Smaller for speed
+                        const max = 600;
                         let w = img.width, h = img.height;
                         if(w>h){ if(w>max){ h*=max/w; w=max; }} else { if(h>max){ w*=max/h; h=max; }}
                         canvas.width=w; canvas.height=h;
@@ -419,7 +414,8 @@
                 try {
                     if (btn) btn.innerText = `Uploading ${i+1}/${files.length}...`;
                     const base64 = await compressImage(files[i]);
-                    await addDoc(collection(db, "images"), { orderId, type, blob: base64, timestamp: Date.now() });
+                    // Store the doc ID (string) as reference
+                    await addDoc(collection(db, "images"), { orderId: String(orderId), type, blob: base64, timestamp: Date.now() });
                 } catch (e) { console.error(e); }
             }
         };
@@ -446,10 +442,10 @@
 
             const timeout = setTimeout(() => {
                 btn.disabled = false; btn.innerText = "Save Order";
-                alert("Request timed out (Internet slow). Check connection.");
-            }, 15000);
+                alert("Request timed out. Check connection.");
+            }, 20000);
 
-            btn.disabled = true; btn.innerText = "Saving Data...";
+            btn.disabled = true; btn.innerText = "Syncing...";
             
             try {
                 let maxSeq = 0;
@@ -475,6 +471,7 @@
                 const docRef = await addDoc(collection(db, "orders"), orderData);
                 
                 btn.innerText = "Uploading Photos...";
+                // Pass docRef.id (string) to link image to this specific doc
                 const main = document.getElementById('ord-main-image').files[0];
                 if(main) await uploadImages(docRef.id, [main], 'main', btn);
                 const others = document.getElementById('ord-images').files;
@@ -529,7 +526,7 @@
             const content = document.getElementById('view-order-content');
             const actions = document.getElementById('order-action-bar');
             let itemsHtml = o.items.map(i => `<div style="border-bottom:1px solid #eee; padding:8px 0;"><b>${i.brand} ${i.type}</b><br><small>${i.service}</small></div>`).join('');
-            content.innerHTML = `<div style="text-align:center; margin-bottom:16px;"><div id="view-order-main-photo" style="width:100%; height:200px; background:#f0f0f0; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; overflow:hidden;">Loading...</div><h2>${o.customer.name}</h2><a href="tel:${o.customer.phone}" style="color:var(--info);">${o.customer.phone}</a></div><div class="card" style="background:#fafafa;">${itemsHtml}</div><div style="display:flex; justify-content:space-between; margin-top:16px;"><span>Total: <b>${o.financials.total}</b></span><span>Balance: <b style="color:${o.financials.balance>0?'red':'green'}">${o.financials.balance}</b></span></div><div id="view-order-intake-images" class="img-grid" style="margin-top:16px;"></div>${o.status === 'Completed' ? `<h4 style="margin-top:10px; color:green;">Proof</h4><div id="view-order-proof-images" class="img-grid"></div>` : ''}`;
+            content.innerHTML = `<div style="text-align:center; margin-bottom:16px;"><div id="view-order-main-photo" style="width:100%; height:200px; background:#f0f0f0; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; overflow:hidden;">Loading Photo...</div><h2>${o.customer.name}</h2><a href="tel:${o.customer.phone}" style="color:var(--info);">${o.customer.phone}</a></div><div class="card" style="background:#fafafa;">${itemsHtml}</div><div style="display:flex; justify-content:space-between; margin-top:16px;"><span>Total: <b>${o.financials.total}</b></span><span>Balance: <b style="color:${o.financials.balance>0?'red':'green'}">${o.financials.balance}</b></span></div><div id="view-order-intake-images" class="img-grid" style="margin-top:16px;"></div>${o.status === 'Completed' ? `<h4 style="margin-top:10px; color:green;">Proof</h4><div id="view-order-proof-images" class="img-grid"></div>` : ''}`;
 
             // Load Images (Cloud)
             const q = query(collection(db, "images"), where("orderId", "==", id));
@@ -564,8 +561,10 @@
         window.updateStatus = async (id, status) => {
             const updates = { status };
             if(status === 'Completed') updates['financials.balance'] = 0;
-            await updateDoc(doc(db, "orders", id), updates);
-            if(status !== 'Completed') window.closeModal('modal-view-order');
+            try {
+                await updateDoc(doc(db, "orders", id), updates);
+                if(status !== 'Completed') window.closeModal('modal-view-order');
+            } catch(e) { alert("Error updating: " + e.message); }
         };
 
         window.initiateCompleteOrder = (id) => {
@@ -577,16 +576,20 @@
             if(!files.length) return alert("Upload Proof");
             const btn = document.querySelector('#modal-proof .btn-primary');
             btn.disabled = true; btn.innerText = "Uploading...";
-            await uploadImages(pendingCompleteId, files, 'proof', null);
-            await window.updateStatus(pendingCompleteId, 'Completed');
-            window.closeModal('modal-proof');
-            btn.disabled = false;
+            try {
+                await uploadImages(pendingCompleteId, files, 'proof', null);
+                await window.updateStatus(pendingCompleteId, 'Completed');
+                window.closeModal('modal-proof');
+            } catch(e) { alert("Error: " + e.message); }
+            finally { btn.disabled = false; btn.innerText = "Complete"; }
         };
 
         window.deleteOrder = async () => {
             if(!confirm("Delete permanently?")) return;
-            await deleteDoc(doc(db, "orders", viewingOrderId));
-            window.closeModal('modal-view-order');
+            try {
+                await deleteDoc(doc(db, "orders", viewingOrderId));
+                window.closeModal('modal-view-order');
+            } catch(e) { alert("Error deleting: " + e.message); }
         }
 
         window.switchView = (id, el) => {
@@ -621,7 +624,11 @@
         }
         window.openInventoryModal = () => document.getElementById('modal-inventory').classList.add('open');
         window.saveInventory = async (e) => {
-            e.preventDefault(); await addDoc(collection(db, "inventory"), { name: document.getElementById('inv-name').value, brand: document.getElementById('inv-brand').value, qty: document.getElementById('inv-qty').value, price: document.getElementById('inv-price').value }); window.closeModal('modal-inventory');
+            e.preventDefault();
+            try {
+                await addDoc(collection(db, "inventory"), { name: document.getElementById('inv-name').value, brand: document.getElementById('inv-brand').value, qty: document.getElementById('inv-qty').value, price: document.getElementById('inv-price').value }); 
+                window.closeModal('modal-inventory');
+            } catch(e) { alert("Error: " + e.message); }
         }
         window.renderInventory = () => {
             const el = document.getElementById('inventory-list'); el.innerHTML = window.inventory.map(i => `<div class="card" style="display:flex; justify-content:space-between;"><span>${i.name}</span><b>${i.qty}</b></div>`).join('');
@@ -663,8 +670,10 @@
             const width = 900;
             let h = 1300 + (o.items.length * 150);
             canvas.width = width; canvas.height = h;
+            
             ctx.fillStyle = "white"; ctx.fillRect(0,0,width,h);
             
+            // Header
             const logoImg = document.getElementById('logo-img-res');
             let logoDrawn = false;
             try { if(logoImg.complete) { ctx.drawImage(logoImg, width/2 - 150, 50, 300, 300 * (logoImg.height/logoImg.width)); logoDrawn=true; }} catch(e){}
@@ -703,12 +712,21 @@
             ctx.textAlign='left'; ctx.fillText('Balance', 80, footerY+200); ctx.textAlign='right'; ctx.fillText(o.financials.balance, 820, footerY+200);
             
             canvas.toBlob(blob => {
-                const a = document.createElement('a'); a.download = `bill_${o.seqId}.png`; a.href = URL.createObjectURL(blob); a.click();
+                const a = document.createElement('a');
+                a.download = `bill_${o.seqId}.png`;
+                a.href = URL.createObjectURL(blob);
+                a.click();
                 setTimeout(() => { if(confirm("Bill Downloaded. Open WhatsApp now?")) window.sendWhatsApp(o.customer.phone, "Here is your bill (attach image)"); }, 1000);
             });
         };
 
-        onAuthStateChanged(auth, user => { if(user) { document.getElementById('login-screen').classList.add('hidden'); document.getElementById('db-status').style.background = '#34C759'; initListeners(); }});
+        onAuthStateChanged(auth, user => { if(user) { 
+            document.getElementById('login-btn').innerText = "Enter Shop"; 
+            document.getElementById('login-btn').disabled = false;
+            document.getElementById('db-status').style.background = '#34C759'; 
+            initListeners(); 
+        }});
+
         function initListeners() {
             onSnapshot(collection(db, "orders"), (snap) => { window.orders = []; snap.forEach(doc => window.orders.push({id: doc.id, ...doc.data()})); window.orders.sort((a,b) => b.timestamp - a.timestamp); window.renderOrders(); window.renderReports(); });
             onSnapshot(collection(db, "inventory"), (snap) => { window.inventory = []; snap.forEach(doc => window.inventory.push({id: doc.id, ...doc.data()})); window.renderInventory(); window.populateStockDropdown(); });
