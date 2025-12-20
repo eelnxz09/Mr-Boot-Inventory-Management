@@ -6,7 +6,7 @@
     <title>Mr Boot Manager (Online)</title>
     <style>
         :root {
-            /* Palette - Premium Leather & Modern UI */
+            /* Palette */
             --primary: #4E342E; 
             --primary-dark: #281A16;
             --accent: #D7CCC8;
@@ -43,14 +43,6 @@
             color: white; padding: 24px; transition: transform 0.3s ease-in-out;
         }
         #login-screen.hidden { transform: translateY(-100%); }
-        .user-card {
-            background: white; color: var(--text-main); width: 100%; max-width: 320px;
-            padding: 20px; border-radius: 20px; margin-bottom: 16px;
-            display: flex; align-items: center; gap: 16px; cursor: pointer;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            transition: transform 0.1s;
-        }
-        .user-card:active { transform: scale(0.98); }
 
         /* Layout */
         header {
@@ -104,12 +96,17 @@
             z-index: 1500; cursor: pointer; border: none;
         }
 
-        /* Forms */
+        /* Forms & Inputs */
         input, select, textarea {
             width: 100%; padding: 12px; margin-bottom: 12px;
             border: 1px solid #E5E5EA; border-radius: 10px;
             font-size: 16px; background: #F9F9F9; -webkit-appearance: none;
         }
+        .search-bar { 
+            position: sticky; top: 0; z-index: 10; margin-bottom: 10px; 
+            background: var(--bg-app); padding-bottom: 5px;
+        }
+        
         .btn { width: 100%; padding: 14px; border: none; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 8px; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
@@ -119,6 +116,25 @@
         .flex-row { display: flex; gap: 10px; }
         .hidden { display: none !important; }
         .img-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 1px solid #ddd; margin-right: 8px; cursor: pointer; }
+        
+        /* Bulk Actions Bar */
+        #bulk-actions-bar {
+            position: fixed; bottom: 90px; left: 16px; right: 16px;
+            background: #333; color: white; padding: 12px 20px;
+            border-radius: 50px; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1600;
+            transform: translateY(100px); transition: transform 0.3s;
+        }
+        #bulk-actions-bar.visible { transform: translateY(0); }
+
+        /* Order Card Selection */
+        .card.selecting { border: 2px solid var(--primary); background: #fffcf8; }
+        .checkbox-overlay {
+            width: 24px; height: 24px; border-radius: 50%; border: 2px solid #ddd;
+            display: flex; align-items: center; justify-content: center; margin-right: 12px;
+        }
+        .card.selecting .checkbox-overlay { background: var(--primary); border-color: var(--primary); }
+        .card.selecting .checkbox-overlay::after { content: '✓'; color: white; font-size: 14px; }
         
         /* Modals */
         .modal {
@@ -136,6 +152,13 @@
         .item-row { background: white; border: 1px solid #eee; padding: 10px; border-radius: 10px; margin-bottom: 10px; position: relative; }
         .remove-item { position: absolute; top: 5px; right: 5px; color: red; background: none; border: none; font-size: 20px; }
         
+        /* Gallery */
+        .gallery-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .gallery-item { position: relative; border-radius: 12px; overflow: hidden; aspect-ratio: 4/5; }
+        .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+        .gallery-caption { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.6); color: white; padding: 8px; font-size: 12px; font-weight: bold; }
+        .gallery-delete { position: absolute; top: 5px; right: 5px; background: rgba(255,59,48,0.9); color: white; width: 24px; height: 24px; border-radius: 50%; border:none; display: flex; align-items: center; justify-content: center;}
+
         /* Service Selection Styling (Tick Mark) */
         .service-option-label {
             display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; 
@@ -164,7 +187,7 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
-    <!-- GLOBAL ERROR HANDLER FOR MOBILE -->
+    <!-- GLOBAL ERROR HANDLER -->
     <script>
         window.onerror = function(msg, url, line) {
             // alert("App Error: " + msg + "\nLine: " + line);
@@ -177,6 +200,15 @@
     <div id="loading-overlay" class="hidden">
         <div class="spinner"></div>
         <div id="loading-text">Processing...</div>
+    </div>
+
+    <!-- BULK ACTIONS BAR -->
+    <div id="bulk-actions-bar">
+        <span><span id="bulk-count">0</span> Selected</span>
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-outline" style="color:white; border-color:white; margin:0; padding:6px 12px; font-size:12px;" onclick="window.performBulkAction('Ready')">Mark Ready</button>
+            <button class="btn btn-outline" style="color:#FF3B30; border-color:#FF3B30; margin:0; padding:6px 12px; font-size:12px;" onclick="window.performBulkAction('Delete')">Delete</button>
+        </div>
     </div>
 
     <!-- LOGIN -->
@@ -213,6 +245,7 @@
 
     <!-- HIDDEN CANVAS & RESOURCES -->
     <canvas id="billCanvas" style="display:none;"></canvas>
+    <!-- Direct link for canvas. MUST BE CORS enabled or base64 -->
     <img id="logo-img-res" src="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png" crossorigin="anonymous" style="display:none;">
 
     <main>
@@ -222,7 +255,14 @@
                 🚚 Today's Delivery: <span id="delivery-count">0</span> orders
             </div>
 
-            <div class="flex-row" style="overflow-x:auto; padding-bottom:8px; margin-bottom:8px;">
+            <!-- Search Bar -->
+            <div class="search-bar">
+                <input type="text" id="order-search" placeholder="Search Order ID, Name, Mobile..." oninput="window.renderOrders()" style="margin-bottom:0;">
+            </div>
+
+            <div class="flex-row" style="overflow-x:auto; padding-bottom:8px; margin-bottom:8px; align-items:center;">
+                <button id="btn-select-mode" class="btn btn-outline" style="width:auto; margin:0; padding:6px 10px; font-size:12px;" onclick="window.toggleSelectMode()">Select</button>
+                <div style="width:1px; height:20px; background:#ddd; margin:0 5px;"></div>
                 <button class="badge" style="background:var(--primary); color:white; border:none;" onclick="window.filterOrders('All')">All</button>
                 <button class="badge bg-pending" style="border:none;" onclick="window.filterOrders('Pending')">Pending</button>
                 <button class="badge bg-ready" style="border:none;" onclick="window.filterOrders('Ready')">Ready</button>
@@ -238,6 +278,10 @@
 
         <!-- CUSTOMERS -->
         <section id="view-customers" class="view">
+            <!-- Search Bar -->
+            <div class="search-bar">
+                <input type="text" id="customer-search" placeholder="Search Customer Name or Mobile..." oninput="window.renderCustomers()" style="margin-bottom:10px;">
+            </div>
             <div id="customers-list"></div>
         </section>
 
@@ -248,6 +292,15 @@
                 <button class="btn btn-primary" style="width:auto; margin:0; padding:8px 16px; font-size:12px;" onclick="window.openInventoryModal()">+ Add Item</button>
             </div>
             <div id="inventory-list"></div>
+        </section>
+        
+        <!-- GALLERY (NEW) -->
+        <section id="view-gallery" class="view">
+            <div style="display:flex; justify-content:space-between; margin-bottom:16px; align-items:center;">
+                <h3>Showcase</h3>
+                <button class="btn btn-primary" style="width:auto; margin:0; padding:8px 16px; font-size:12px;" onclick="document.getElementById('modal-gallery-upload').classList.add('open')">+ Upload</button>
+            </div>
+            <div id="gallery-list" class="gallery-grid"></div>
         </section>
 
         <!-- REPORTS -->
@@ -278,6 +331,11 @@
         <a href="#" class="nav-item" onclick="window.switchView('customers', this)">
             <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
             <span>Customers</span>
+        </a>
+        <a href="#" class="nav-item" onclick="window.switchView('gallery', this)">
+             <!-- Image Icon -->
+             <svg viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>
+            <span>Gallery</span>
         </a>
         <a href="#" class="nav-item" id="nav-inventory" onclick="window.switchView('inventory', this)">
             <svg viewBox="0 0 24 24"><path d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
@@ -379,6 +437,16 @@
         </div>
     </div>
 
+    <!-- GALLERY UPLOAD -->
+    <div id="modal-gallery-upload" class="modal">
+        <div class="modal-header"><h3>Upload to Gallery</h3><button class="close-btn" onclick="window.closeModal('modal-gallery-upload')">&times;</button></div>
+        <div class="modal-body">
+            <input type="text" id="gal-caption" placeholder="Work Description / Name">
+            <input type="file" id="gal-image" accept="image/*">
+            <button class="btn btn-primary" onclick="window.saveGalleryItem()">Upload</button>
+        </div>
+    </div>
+
     <div id="modal-customer-history" class="modal">
         <div class="modal-header"><h3>History</h3><button class="close-btn" onclick="window.closeModal('modal-customer-history')">&times;</button></div>
         <div class="modal-body" id="customer-history-content"></div>
@@ -396,7 +464,7 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // FIREBASE CONFIG
+        // FIREBASE CONFIG - USER PROVIDED
         const firebaseConfig = {
             apiKey: "AIzaSyAFyPxYstLeXFCZkoCJr8NeFRvazMeEju4",
             authDomain: "boot-7e65c.firebaseapp.com",
@@ -414,6 +482,9 @@
         window.orders = [];
         window.inventory = [];
         window.customers = {};
+        window.gallery = [];
+        window.selectedOrders = new Set();
+        window.isSelectMode = false;
         
         let pendingCompleteId, viewingOrderId, currentServiceInput;
         const REVIEW_LINK = "https://g.page/r/Ce0M0864Elt6EBE/review";
@@ -442,7 +513,6 @@
             showLoading("Logging in...");
             try { 
                 await signInWithEmailAndPassword(auth, email, pass);
-                // Auth listener will handle the rest
             } 
             catch(e) { 
                 hideLoading();
@@ -536,6 +606,12 @@
                 window.renderInventory();
                 window.populateStockDropdown();
             });
+
+            onSnapshot(collection(db, "gallery"), (snap) => {
+                window.gallery = [];
+                snap.forEach(doc => window.gallery.push({id: doc.id, ...doc.data()}));
+                window.renderGallery();
+            });
         }
 
         const compressImage = (file) => {
@@ -566,7 +642,6 @@
                 try {
                     if (btn) btn.innerText = `Uploading Photo ${i+1}/${files.length}...`;
                     const base64 = await compressImage(files[i]);
-                    // Use STRING ID as link between collections
                     await addDoc(collection(db, "images"), { orderId: String(orderId), type, blob: base64, timestamp: Date.now() });
                 } catch (e) { console.error(e); }
             }
@@ -638,11 +713,8 @@
                 const docRef = await addDoc(collection(db, "orders"), orderData);
                 
                 btn.innerText = "Uploading Photos...";
-                // UPLOAD MAIN PHOTO
                 const main = document.getElementById('ord-main-image').files[0];
                 if(main) await uploadImages(docRef.id, [main], 'main', btn);
-                
-                // UPLOAD OTHERS
                 const others = document.getElementById('ord-images').files;
                 if(others.length) await uploadImages(docRef.id, others, 'intake', btn);
 
@@ -670,21 +742,113 @@
             }
         };
 
-        window.renderOrders = (filter = 'All') => {
+        // --- BULK & SELECTION ---
+        window.toggleSelectMode = () => {
+            window.isSelectMode = !window.isSelectMode;
+            window.selectedOrders.clear();
+            const btn = document.getElementById('btn-select-mode');
+            const bar = document.getElementById('bulk-actions-bar');
+            
+            if (window.isSelectMode) {
+                btn.innerText = "Cancel";
+                bar.classList.add('visible');
+            } else {
+                btn.innerText = "Select";
+                bar.classList.remove('visible');
+            }
+            window.renderOrders();
+        };
+
+        window.toggleOrderSelection = (id) => {
+            if (window.selectedOrders.has(id)) window.selectedOrders.delete(id);
+            else window.selectedOrders.add(id);
+            
+            document.getElementById('bulk-count').innerText = window.selectedOrders.size;
+            window.renderOrders();
+        };
+
+        window.performBulkAction = async (action) => {
+            if (window.selectedOrders.size === 0) return alert("No orders selected");
+            if (!confirm(`${action} ${window.selectedOrders.size} orders?`)) return;
+
+            showLoading("Processing...");
+            try {
+                const updates = Array.from(window.selectedOrders).map(async (id) => {
+                    if (action === 'Delete') {
+                        await deleteDoc(doc(db, "orders", id));
+                    } else if (action === 'Ready') {
+                        await updateDoc(doc(db, "orders", id), { status: 'Ready' });
+                    }
+                });
+                await Promise.all(updates);
+                window.toggleSelectMode(); // Exit mode
+            } catch (e) {
+                alert("Bulk action failed: " + e.message);
+            } finally {
+                hideLoading();
+            }
+        };
+
+        window.renderOrders = (filter) => {
+            // Keep current filter if not passed
+            if (!filter) {
+                const activeBtn = document.querySelector('#view-orders .badge[style*="opacity: 1"]');
+                filter = activeBtn ? activeBtn.innerText : 'All';
+            }
+
             const list = document.getElementById('orders-list');
             list.innerHTML = '';
-            const filtered = window.orders.filter(o => filter === 'All' ? true : o.status === filter);
+            
+            const searchTerm = document.getElementById('order-search').value.toLowerCase();
+            
+            const filtered = window.orders.filter(o => {
+                const matchesFilter = filter === 'All' || o.status === filter;
+                const matchesSearch = o.seqId.toLowerCase().includes(searchTerm) || 
+                                      o.customer.name.toLowerCase().includes(searchTerm) || 
+                                      o.customer.phone.includes(searchTerm);
+                return matchesFilter && matchesSearch;
+            });
+
+            // Delivery Alert
             const today = new Date().toISOString().split('T')[0];
             const due = window.orders.filter(o => o.deliveryDate === today && o.status !== 'Completed').length;
             const alert = document.getElementById('delivery-alert');
             if(due > 0) { alert.classList.remove('hidden'); document.getElementById('delivery-count').innerText = due; } else alert.classList.add('hidden');
 
             filtered.forEach(o => {
+                const isSelected = window.selectedOrders.has(o.id);
                 const div = document.createElement('div');
-                div.className = 'card';
-                div.onclick = () => window.openViewOrder(o.id);
+                div.className = `card ${window.isSelectMode && isSelected ? 'selecting' : ''}`;
+                
+                // Logic: In select mode, clicking card selects it. Otherwise opens view.
+                div.onclick = () => {
+                    if (window.isSelectMode) window.toggleOrderSelection(o.id);
+                    else window.openViewOrder(o.id);
+                };
+
                 const itemsText = o.items ? o.items.map(i=>i.type).join(', ') : '';
-                div.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><span class="badge" style="background:#eee;">#${o.seqId}</span><span style="font-size:12px; color:#888;">${o.date}</span></div><div style="font-weight:bold; font-size:16px;">${o.customer.name}</div><div style="font-size:14px; color:#555; margin:4px 0;">${itemsText}</div><div style="display:flex; justify-content:space-between; margin-top:8px;"><span class="badge ${o.status==='Completed'?'bg-completed':(o.status==='Ready'?'bg-ready':'bg-pending')}">${o.status}</span><span style="font-weight:bold; color:${o.financials.balance>0?'var(--danger)':'var(--success)'}">Bal: ${o.financials.balance}</span></div>`;
+                
+                // Checkbox UI for select mode
+                const checkUI = window.isSelectMode ? 
+                    `<div class="checkbox-overlay">${isSelected ? '' : ''}</div>` : '';
+
+                div.innerHTML = `
+                    <div style="display:flex; align-items:center;">
+                        ${checkUI}
+                        <div style="flex:1;">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <span class="badge" style="background:#eee;">#${o.seqId}</span>
+                                <span style="font-size:12px; color:#888;">${o.date}</span>
+                            </div>
+                            <div style="font-weight:bold; font-size:16px;">${o.customer.name}</div>
+                            <div style="font-size:14px; color:#555; margin:4px 0;">${itemsText}</div>
+                            <div style="display:flex; justify-content:space-between; margin-top:8px;">
+                                <span class="badge ${o.status==='Completed'?'bg-completed':(o.status==='Ready'?'bg-ready':'bg-pending')}">${o.status}</span>
+                                <span style="font-weight:bold; color:${o.financials.balance>0?'var(--danger)':'var(--success)'}">Bal: ${o.financials.balance}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
                 list.appendChild(div);
             });
         };
@@ -721,9 +885,9 @@
             if(o.status === 'Pending') {
                 actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.shareBill('${o.id}')">Send Bill</button><button class="btn btn-primary" onclick="window.updateStatus('${o.id}', 'Ready')">Mark Ready</button>`;
             } else if (o.status === 'Ready') {
-                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.sendWhatsApp('${o.customer.phone}', 'Hi ${o.customer.name}! We hope you love your fresh shoes 👟. Your order #${o.seqId} is ready!')">Notify</button><button class="btn btn-primary" onclick="window.initiateCompleteOrder('${o.id}')">Complete</button>`;
+                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.sendWhatsApp('${o.customer.phone}', 'Hello ${o.customer.name}, your order #${o.seqId} is ready!')">Notify</button><button class="btn btn-primary" onclick="window.initiateCompleteOrder('${o.id}')">Complete</button>`;
             } else {
-                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.sendWhatsApp('${o.customer.phone}', 'Hi ${o.customer.name}! We hope you love your fresh shoes 👟. Could you please spare a moment to rate our service? It helps us a lot! 🌟 ${REVIEW_LINK}')">Ask Review</button>`;
+                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.sendWhatsApp('${o.customer.phone}', '${REVIEW_LINK}')">Ask Review</button>`;
             }
             document.getElementById('modal-view-order').classList.add('open');
         };
@@ -761,13 +925,52 @@
                 window.closeModal('modal-view-order');
             } catch(e) { alert("Error deleting: " + e.message); }
         }
+        
+        window.deleteInventoryItem = async (id) => {
+            if(!confirm("Delete this inventory item?")) return;
+            try {
+                await deleteDoc(doc(db, "inventory", id));
+            } catch(e) { alert("Error deleting: " + e.message); }
+        };
+
+        // --- GALLERY FUNCTIONS ---
+        window.saveGalleryItem = async () => {
+            const caption = document.getElementById('gal-caption').value;
+            const file = document.getElementById('gal-image').files[0];
+            if(!file) return alert("Select Image");
+            
+            showLoading("Uploading to Gallery...");
+            try {
+                const base64 = await compressImage(file);
+                await addDoc(collection(db, "gallery"), { caption, blob: base64, timestamp: Date.now() });
+                window.closeModal('modal-gallery-upload');
+            } catch(e) { alert("Error: " + e.message); }
+            finally { hideLoading(); }
+        };
+
+        window.renderGallery = () => {
+            const el = document.getElementById('gallery-list');
+            el.innerHTML = window.gallery.map(i => `
+                <div class="gallery-item" onclick="window.openImageModal('${i.blob}')">
+                    <img src="${i.blob}">
+                    <div class="gallery-caption">${i.caption || 'Work'}</div>
+                    <button class="gallery-delete" onclick="event.stopPropagation(); window.deleteGalleryItem('${i.id}')">×</button>
+                </div>
+            `).join('');
+        };
+        
+        window.deleteGalleryItem = async (id) => {
+            if(!confirm("Remove from gallery?")) return;
+            await deleteDoc(doc(db, "gallery", id));
+        };
 
         window.switchView = (id, el) => {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
             document.getElementById('view-'+id).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             if(el) el.classList.add('active');
-            if(id === 'orders') window.renderOrders(); if(id === 'customers') window.renderCustomers(); if(id === 'inventory') window.renderInventory(); if(id === 'reports') window.renderReports();
+            if(id === 'orders') window.renderOrders(); if(id === 'customers') window.renderCustomers(); if(id === 'inventory') window.renderInventory(); 
+            if(id === 'reports') window.renderReports(); if(id === 'gallery') window.renderGallery();
         };
         window.closeModal = (id) => document.getElementById(id).classList.remove('open');
         window.openOrderModal = () => { document.getElementById('order-form').reset(); document.getElementById('order-items-container').innerHTML = ''; window.addOrderItem(); document.getElementById('modal-order').classList.add('open'); }
@@ -801,7 +1004,21 @@
             } catch(e) { alert("Error: " + e.message); }
         }
         window.renderInventory = () => {
-            const el = document.getElementById('inventory-list'); el.innerHTML = window.inventory.map(i => `<div class="card" style="display:flex; justify-content:space-between;"><span>${i.name}</span><b>${i.qty}</b></div>`).join('');
+            const el = document.getElementById('inventory-list'); el.innerHTML = window.inventory.map(i => `
+                <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <span style="font-weight:600;">${i.name}</span>
+                        <br><span style="font-size:12px; color:#888;">${i.brand || ''}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="text-align:right;">
+                            <b>Qty: ${i.qty}</b><br>
+                            <span style="font-size:12px;">₹${i.price}</span>
+                        </div>
+                        <button onclick="window.deleteInventoryItem('${i.id}')" style="background:none; border:none; color:#FF3B30; font-size:20px; padding:0; cursor:pointer;">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
         }
         window.populateStockDropdown = () => {
             const s = document.getElementById('ord-stock-item');
@@ -813,7 +1030,9 @@
         }
         window.sendWhatsApp = (phone, text) => window.open(`https://wa.me/91${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
         window.openImageModal = (src) => { document.getElementById('preview-full-img').src=src; document.getElementById('modal-image-preview').classList.add('open'); };
-        
+        window.backupData = () => alert("Online mode is active. Data is already in cloud.");
+        window.restoreData = () => alert("Online mode is active. Data is pulled from cloud.");
+
         window.renderReports = () => {
             let rev=0, pend=0, prof=0;
             window.orders.forEach(o => { 
@@ -829,68 +1048,26 @@
 
         window.renderCustomers = () => {
             const el = document.getElementById('customers-list'); el.innerHTML = '';
-            Object.values(window.customers).forEach(c => { 
+            
+            // Search Logic
+            const term = document.getElementById('customer-search').value.toLowerCase();
+            const filteredCust = Object.values(window.customers).filter(c => 
+                c.name.toLowerCase().includes(term) || c.phone.includes(term)
+            );
+
+            filteredCust.forEach(c => { 
                 // Escape simple quote
                 const safePhone = c.phone.replace("'", "\\'");
                 el.innerHTML += `<div class="card" onclick="window.showHistory('${safePhone}')"><h3>${c.name}</h3><p>${c.phone}</p><p>Orders: ${c.count}</p></div>`; 
             });
         };
         
-        window.showHistory = (phone) => {
-            const list = window.orders.filter(o => o.customer.phone === phone);
-            const el = document.getElementById('customer-history-content');
-            el.innerHTML = '';
-            list.forEach(o => {
-                 let itemText = o.items ? o.items.map(i => i.brand).join(", ") : (o.details ? o.details.type : "");
-                 const div = document.createElement('div');
-                 div.className = 'card';
-                 div.innerHTML = `
-                    <div style="font-weight:bold; display:flex; justify-content:space-between;">
-                        <span>Order #${o.seqId}</span>
-                        <span style="font-size:12px; color:#888;">${o.date}</span>
-                    </div>
-                    <p style="margin:4px 0 8px 0; font-size:14px;">${itemText}</p>
-                    <div style="display:flex; gap:10px;">
-                        <div style="flex:1;">
-                            <span style="font-size:10px; text-transform:uppercase; color:#666;">Intake</span>
-                            <div id="hist-intake-${o.id}" class="img-grid" style="height:50px;"></div>
-                        </div>
-                        <div style="flex:1;">
-                            <span style="font-size:10px; text-transform:uppercase; color:#34C759;">Completed</span>
-                            <div id="hist-proof-${o.id}" class="img-grid" style="height:50px;"></div>
-                        </div>
-                    </div>
-                 `;
-                 el.appendChild(div);
-                 
-                 // Fetch images for history
-                 const q = query(collection(db, "images"), where("orderId", "==", o.id));
-                 getDocs(q).then(snap => {
-                     const inC = document.getElementById(`hist-intake-${o.id}`);
-                     const prC = document.getElementById(`hist-proof-${o.id}`);
-                     snap.forEach(doc => {
-                         const d = doc.data();
-                         const img = `<img src="${d.blob}" class="img-thumb" onclick="window.openImageModal('${d.blob}')">`;
-                         if(d.type === 'intake' && inC) inC.innerHTML += img;
-                         if(d.type === 'proof' && prC) prC.innerHTML += img;
-                     });
-                 });
-            });
-            document.getElementById('modal-customer-history').classList.add('open');
-        }
-
-        // Bill Logic
         window.shareBill = async (id) => {
             const o = window.orders.find(x => x.id === id);
             const canvas = document.getElementById('billCanvas');
             const ctx = canvas.getContext('2d');
             const width = 900;
-            
-            // Dynamic Height Calc
-            let dynamicHeight = 400;
-            if(o.items) dynamicHeight += (o.items.length * 200);
-            
-            let h = 1300 + dynamicHeight;
+            let h = 1300 + (o.items.length * 150);
             canvas.width = width; canvas.height = h;
             
             ctx.fillStyle = "white"; ctx.fillRect(0,0,width,h);
@@ -904,19 +1081,22 @@
             
             // Try fetch Main Photo
             try {
-                const q = query(collection(db, "images"), where("orderId", "==", id), where("type", "==", "main"));
+                const q = query(collection(db, "images"), where("orderId", "==", String(id)));
                 const snap = await getDocs(q);
-                if(!snap.empty) {
-                    const blob = snap.docs[0].data().blob;
-                    const imgObj = new Image(); imgObj.src = blob;
+                let mainBlob = null;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if(d.type === 'main') mainBlob = d.blob;
+                    if(d.type === 'intake' && !mainBlob) mainBlob = d.blob; 
+                });
+
+                if(mainBlob) {
+                    const imgObj = new Image(); imgObj.src = mainBlob;
                     await new Promise(r => imgObj.onload = r);
                     const drawH = 500 * (imgObj.height/imgObj.width);
                     ctx.drawImage(imgObj, width/2-250, 420, 500, drawH);
-                    // Push content down based on image height
-                    // For simplicity in this fixed layout logic, we assume standard spacing or just overlap slightly if huge. 
-                    // To be perfect, we'd need a `currentY` variable tracker.
                 }
-            } catch(e) {}
+            } catch(e) { console.log("Bill photo error", e); }
 
             let y = 1000;
             ctx.textAlign = "left"; ctx.fillStyle = "black"; ctx.font = "bold 40px sans-serif";
@@ -930,7 +1110,6 @@
             }
             y+=80;
             
-            // Text Wrap Helper
             function wrapText(text, x, y, maxWidth, lineHeight) {
                 const words = text.split(' ');
                 let line = '';
@@ -969,7 +1148,7 @@
             }
 
             const footerY = y + 50;
-            ctx.fillStyle='#F9F9F9'; ctx.fillRect(40, footerY, 820, 320); // Expanded footer
+            ctx.fillStyle='#F9F9F9'; ctx.fillRect(40, footerY, 820, 320);
             ctx.fillStyle='#000'; ctx.font='36px sans-serif'; 
             
             let fy = footerY + 60;
