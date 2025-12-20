@@ -508,18 +508,29 @@
         </div>
     </div>
 
+    <!-- STUB FUNCTIONS - Will be replaced when module loads -->
+    <script>
+        // These prevent "not a function" errors while the module loads
+        window.loginWithEmail = () => console.log('Loading...');
+        window.registerWithEmail = () => console.log('Loading...');
+        window.logout = () => console.log('Loading...');
+        window.closeModal = () => {};
+        window.saveGalleryItem = () => {};
+    </script>
+
     <script type="module">
         console.log('🚀 App starting...');
+        alert('Module script is loading! Check console (F12)');
         
         // Enhanced error logging
         window.addEventListener('error', (e) => {
             console.error('❌ Global Error:', e.error);
-            alert('Error detected! Check console (F12) for details.');
+            document.body.innerHTML += `<div style="position:fixed;top:0;left:0;right:0;background:red;color:white;padding:20px;z-index:99999;">ERROR: ${e.error?.message || e.message}<br>Check console (F12)</div>`;
         });
         
         window.addEventListener('unhandledrejection', (e) => {
             console.error('❌ Unhandled Promise Rejection:', e.reason);
-            alert('Promise error! Check console (F12) for details.');
+            document.body.innerHTML += `<div style="position:fixed;top:50px;left:0;right:0;background:orange;color:white;padding:20px;z-index:99999;">PROMISE ERROR: ${e.reason}<br>Check console (F12)</div>`;
         });
         
         console.log('📦 Importing Firebase modules...');
@@ -826,8 +837,7 @@
                 const others = document.getElementById('ord-images').files;
                 if(others.length) await uploadImages(newOrderId, others, 'intake', btn);
 
-                // Stock
-                const stockId = document.getElementById('ord-stock-item').value;
+                // Stock - use the stockId already declared above
                 if(stockId) {
                     const stockItem = window.inventory.find(i => i.id === stockId);
                     if(stockItem) {
