@@ -610,7 +610,6 @@
         }
 
         const compressImage = async (file) => {
-            // Automatic HEIC conversion support
             let imageFile = file;
             if (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic') {
                 if (window.heic2any) {
@@ -648,7 +647,6 @@
                 try {
                     if (btn) btn.innerText = `Uploading Photo ${i+1}/${files.length}...`;
                     const base64 = await compressImage(files[i]);
-                    // Use STRING ID as link between collections
                     await addDoc(collection(db, "images"), { orderId: String(orderId), type, blob: base64, timestamp: Date.now() });
                 } catch (e) { console.error(e); }
             }
@@ -720,15 +718,12 @@
                 const docRef = await addDoc(collection(db, "orders"), orderData);
                 
                 btn.innerText = "Uploading Photos...";
-                // UPLOAD MAIN PHOTO
                 const main = document.getElementById('ord-main-image').files[0];
                 if(main) await uploadImages(docRef.id, [main], 'main', btn);
                 
-                // UPLOAD OTHERS
                 const others = document.getElementById('ord-images').files;
                 if(others.length) await uploadImages(docRef.id, others, 'intake', btn);
 
-                // Stock
                 const stockId = document.getElementById('ord-stock-item').value;
                 if(stockId) {
                     const stockItem = window.inventory.find(i => i.id === stockId);
@@ -852,45 +847,6 @@
                 window.closeModal('modal-proof');
             } catch(e) { alert("Error: " + e.message); }
             finally { btn.disabled = false; btn.innerText = "Complete"; }
-        };
-
-        // --- BULK & SELECTION ---
-        window.toggleSelectMode = () => {
-            window.isSelectMode = !window.isSelectMode;
-            window.selectedOrders.clear();
-            const btn = document.getElementById('btn-select-mode');
-            const bar = document.getElementById('bulk-actions-bar');
-            
-            if (window.isSelectMode) {
-                btn.innerText = "Cancel";
-                bar.classList.add('visible');
-            } else {
-                btn.innerText = "Select";
-                bar.classList.remove('visible');
-            }
-            window.renderOrders();
-        };
-
-        window.toggleOrderSelection = (id) => {
-            if (window.selectedOrders.has(id)) window.selectedOrders.delete(id);
-            else window.selectedOrders.add(id);
-            document.getElementById('bulk-count').innerText = window.selectedOrders.size;
-            window.renderOrders();
-        };
-
-        window.performBulkAction = async (action) => {
-            if (window.selectedOrders.size === 0) return alert("No orders selected");
-            if (!confirm(`${action} ${window.selectedOrders.size} orders?`)) return;
-
-            showLoading("Processing...");
-            try {
-                const updates = Array.from(window.selectedOrders).map(async (id) => {
-                    if (action === 'Delete') await deleteDoc(doc(db, "orders", id));
-                    else if (action === 'Ready') await updateDoc(doc(db, "orders", id), { status: 'Ready' });
-                });
-                await Promise.all(updates);
-                window.toggleSelectMode(); 
-            } catch (e) { alert("Bulk action failed: " + e.message); } finally { hideLoading(); }
         };
 
         window.deleteOrder = async () => {
@@ -1035,6 +991,50 @@
             });
         };
         
+        window.showHistory = (phone) => {
+            const list = window.orders.filter(o => o.customer.phone === phone);
+            const el = document.getElementById('customer-history-content');
+            el.innerHTML = '';
+            list.forEach(o => {
+                 let itemText = o.items ? o.items.map(i => i.brand).join(", ") : (o.details ? o.details.type : "");
+                 const div = document.createElement('div');
+                 div.className = 'card';
+                 div.innerHTML = `
+                    <div style="font-weight:bold; display:flex; justify-content:space-between;">
+                        <span>Order #${o.seqId}</span>
+                        <span style="font-size:12px; color:#888;">${o.date}</span>
+                    </div>
+                    <p style="margin:4px 0 8px 0; font-size:14px;">${itemText}</p>
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <span style="font-size:10px; text-transform:uppercase; color:#666;">Intake</span>
+                            <div id="hist-intake-${o.id}" class="img-grid" style="height:50px;"></div>
+                        </div>
+                        <div style="flex:1;">
+                            <span style="font-size:10px; text-transform:uppercase; color:#34C759;">Completed</span>
+                            <div id="hist-proof-${o.id}" class="img-grid" style="height:50px;"></div>
+                        </div>
+                    </div>
+                 `;
+                 el.appendChild(div);
+                 
+                 // Fetch images for history
+                 const q = query(collection(db, "images"), where("orderId", "==", o.id));
+                 getDocs(q).then(snap => {
+                     const inC = document.getElementById(`hist-intake-${o.id}`);
+                     const prC = document.getElementById(`hist-proof-${o.id}`);
+                     snap.forEach(doc => {
+                         const d = doc.data();
+                         const img = `<img src="${d.blob}" class="img-thumb" onclick="window.openImageModal('${d.blob}')">`;
+                         if(d.type === 'intake' && inC) inC.innerHTML += img;
+                         if(d.type === 'proof' && prC) prC.innerHTML += img;
+                     });
+                 });
+            });
+            document.getElementById('modal-customer-history').classList.add('open');
+        }
+
+        // Bill Logic
         window.shareBill = async (id) => {
             const o = window.orders.find(x => x.id === id);
             const canvas = document.getElementById('billCanvas');
@@ -1097,6 +1097,7 @@
             }
             y+=80;
             
+            // Text Wrap Helper
             function wrapText(text, x, y, maxWidth, lineHeight) {
                 const words = text.split(' ');
                 let line = '';
@@ -1135,7 +1136,7 @@
             }
 
             const footerY = y + 50;
-            ctx.fillStyle='#F9F9F9'; ctx.fillRect(40, footerY, 820, 320);
+            ctx.fillStyle='#F9F9F9'; ctx.fillRect(40, footerY, 820, 320); // Expanded footer
             ctx.fillStyle='#000'; ctx.font='36px sans-serif'; 
             
             let fy = footerY + 60;
