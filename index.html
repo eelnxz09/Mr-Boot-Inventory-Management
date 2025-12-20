@@ -29,7 +29,19 @@
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--bg-app); color: var(--text-main); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* Fix for mobile viewport height issues */
+        body { 
+            margin: 0; 
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg-app); 
+            color: var(--text-main); 
+            height: 100vh; /* Fallback */
+            height: 100dvh; /* Dynamic height for mobile browsers */
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
 
         /* --- Layout --- */
         header {
@@ -1221,16 +1233,19 @@
             ctx.fillStyle='#888'; ctx.font='30px sans-serif'; ctx.textAlign='center';
             ctx.fillText('Thank u for Cooperation', width/2, height - 30);
 
+            // Force direct WhatsApp link logic on mobile by defaulting to download + link
+            // Bypassing Share Sheet to ensure direct message to specific number
             canvas.toBlob(blob => {
-                const file = new File([blob], `bill_${o.seqId}.png`, { type: 'image/png' });
-                const doFallback = () => {
-                    const a=document.createElement('a'); a.download=`bill_${o.seqId}.png`; a.href=canvas.toDataURL(); a.click();
-                    alert("Bill Image Downloaded! Attaching text to WhatsApp...");
-                    sendWhatsApp(o.customer.phone, `Here is your bill for Order #${o.seqId}.`);
-                };
-                if(navigator.canShare && navigator.canShare({files:[file]})) {
-                    navigator.share({files:[file], title: 'Mr Boot Bill', text: `Bill for Order #${o.seqId}`}).catch(err => { console.error(err); doFallback(); });
-                } else { doFallback(); }
+                const a = document.createElement('a');
+                a.download = `bill_${o.seqId}.png`;
+                a.href = URL.createObjectURL(blob);
+                a.click();
+                
+                // Slight delay to allow download to start before switching apps
+                setTimeout(() => {
+                    alert("Bill Downloaded! Opening WhatsApp...");
+                    sendWhatsApp(o.customer.phone, `Here is your bill for Order #${o.seqId}. (Please attach the downloaded bill image)`);
+                }, 1000);
             });
         }
 
