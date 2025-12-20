@@ -188,7 +188,7 @@
     <!-- GLOBAL ERROR HANDLER -->
     <script>
         window.onerror = function(msg, url, line) {
-            console.log("App Error: " + msg + "\nLine: " + line);
+            // alert("App Error: " + msg + "\nLine: " + line);
         };
     </script>
 </head>
@@ -367,11 +367,9 @@
                 <label style="margin-top:16px;">Photos</label>
                 <div style="background:#E5F1FF; padding:12px; border-radius:10px; margin-bottom:12px; border: 1px dashed #007AFF;">
                     <label style="color:#007AFF; font-weight:bold;">📸 Main Photo (For Bill)</label>
-                    <!-- accept="image/*" is crucial for mobile camera/gallery selector -->
                     <input type="file" id="ord-main-image" accept="image/*" style="margin-bottom:0;">
                 </div>
                 <label>Additional Photos</label>
-                <!-- accept="image/*" enables file picker for all image types -->
                 <input type="file" id="ord-images" multiple accept="image/*">
 
                 <select id="ord-stock-item" style="margin-top:12px;"><option value="">-- Select Add-on --</option></select>
@@ -419,6 +417,16 @@
             <p>Upload completion proof:</p>
             <input type="file" id="proof-image" accept="image/*">
             <button class="btn btn-primary" onclick="window.saveProofAndComplete()">Complete</button>
+        </div>
+    </div>
+
+    <!-- GALLERY UPLOAD -->
+    <div id="modal-gallery-upload" class="modal">
+        <div class="modal-header"><h3>Upload to Gallery</h3><button class="close-btn" onclick="window.closeModal('modal-gallery-upload')">&times;</button></div>
+        <div class="modal-body">
+            <input type="text" id="gal-caption" placeholder="Work Description / Name">
+            <input type="file" id="gal-image" accept="image/*">
+            <button class="btn btn-primary" onclick="window.saveGalleryItem()">Upload</button>
         </div>
     </div>
 
@@ -639,7 +647,6 @@
                 try {
                     if (btn) btn.innerText = `Uploading Photo ${i+1}/${files.length}...`;
                     const base64 = await compressImage(files[i]);
-                    // Use STRING ID as link between collections
                     await addDoc(collection(db, "images"), { orderId: String(orderId), type, blob: base64, timestamp: Date.now() });
                 } catch (e) { console.error(e); }
             }
@@ -1031,6 +1038,7 @@
 
         // Bill Logic
         window.shareBill = async (id) => {
+            showLoading("Generating Bill...");
             const o = window.orders.find(x => x.id === id);
             const canvas = document.getElementById('billCanvas');
             const ctx = canvas.getContext('2d');
@@ -1146,26 +1154,21 @@
             // Adjusted footer position to be relative to canvas height
             ctx.fillText('Thank u for Cooperation', width/2, height - 50);
             
-            canvas.toBlob(blob => {
-                const a = document.createElement('a');
-                a.download = `bill_${o.seqId}.png`;
-                a.href = URL.createObjectURL(blob);
-                a.click();
-                setTimeout(() => { if(confirm("Bill Downloaded. Open WhatsApp now?")) window.sendWhatsApp(o.customer.phone, "Here is your bill (attach image)"); }, 1000);
-            });
+            hideLoading();
+
+            try {
+                canvas.toBlob(blob => {
+                    if (!blob) { alert("Bill generation failed (Browser Security). Please Screenshot."); return; }
+                    const a = document.createElement('a');
+                    a.download = `bill_${o.seqId}.png`;
+                    a.href = URL.createObjectURL(blob);
+                    a.click();
+                    setTimeout(() => { if(confirm("Bill Downloaded. Open WhatsApp now?")) window.sendWhatsApp(o.customer.phone, "Here is your bill....."); }, 1000);
+                });
+            } catch(e) {
+                alert("Canvas Tainted (Security Error). Please use Screenshot.");
+            }
         };
-
-        onAuthStateChanged(auth, user => { if(user) { 
-            document.getElementById('login-btn').innerText = "Enter Shop"; 
-            document.getElementById('login-btn').disabled = false;
-            document.getElementById('db-status').style.background = '#34C759'; 
-            initListeners(); 
-        }});
-
-        function initListeners() {
-            onSnapshot(collection(db, "orders"), (snap) => { window.orders = []; snap.forEach(doc => window.orders.push({id: doc.id, ...doc.data()})); window.orders.sort((a,b) => b.timestamp - a.timestamp); window.renderOrders(); window.renderReports(); });
-            onSnapshot(collection(db, "inventory"), (snap) => { window.inventory = []; snap.forEach(doc => window.inventory.push({id: doc.id, ...doc.data()})); window.renderInventory(); window.populateStockDropdown(); });
-        }
     </script>
 </body>
 </html>
