@@ -614,7 +614,7 @@
             if (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic') {
                 if (window.heic2any) {
                     try {
-                        const blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.6 });
+                        const blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 1.0 });
                         imageFile = Array.isArray(blob) ? blob[0] : blob;
                     } catch(e) { console.error("HEIC convert failed", e); }
                 }
