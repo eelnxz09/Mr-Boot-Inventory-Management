@@ -420,16 +420,6 @@
         </div>
     </div>
 
-    <!-- GALLERY UPLOAD -->
-    <div id="modal-gallery-upload" class="modal">
-        <div class="modal-header"><h3>Upload to Gallery</h3><button class="close-btn" onclick="window.closeModal('modal-gallery-upload')">&times;</button></div>
-        <div class="modal-body">
-            <input type="text" id="gal-caption" placeholder="Work Description / Name">
-            <input type="file" id="gal-image" accept="image/*">
-            <button class="btn btn-primary" onclick="window.saveGalleryItem()">Upload</button>
-        </div>
-    </div>
-
     <div id="modal-inventory" class="modal">
         <div class="modal-header"><h3>Add Item</h3><button class="close-btn" onclick="window.closeModal('modal-inventory')">&times;</button></div>
         <div class="modal-body">
@@ -460,7 +450,7 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // FIREBASE CONFIG
+        // FIREBASE CONFIG - USER PROVIDED
         const firebaseConfig = {
             apiKey: "AIzaSyAFyPxYstLeXFCZkoCJr8NeFRvazMeEju4",
             authDomain: "boot-7e65c.firebaseapp.com",
@@ -614,7 +604,7 @@
             if (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic') {
                 if (window.heic2any) {
                     try {
-                        const blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.6 });
+                        const blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.8 });
                         imageFile = Array.isArray(blob) ? blob[0] : blob;
                     } catch(e) { console.error("HEIC convert failed", e); }
                 }
@@ -1063,7 +1053,7 @@
                 logoDrawn=true; 
             }} catch(e){}
             if(!logoDrawn) { ctx.fillStyle = "#4E342E"; ctx.font = "bold 60px sans-serif"; ctx.textAlign = "center"; ctx.fillText("MR BOOT", width/2, 200); }
-            ctx.fillStyle="#4E342E"; ctx.font = "30px sans-serif"; ctx.textAlign="center"; ctx.fillText("SHOE LAUNDRY", width/2, 380);
+            ctx.fillStyle="#4E342E"; ctx.font = "30px sans-serif"; ctx.textAlign="center"; ctx.fillText("SHOE LAUNDRY & REPAIRING SERVICES", width/2, 380);
             
             // Try fetch Main Photo
             try {
@@ -1157,7 +1147,7 @@
                 a.download = `bill_${o.seqId}.png`;
                 a.href = URL.createObjectURL(blob);
                 a.click();
-                setTimeout(() => { if(confirm("Bill Downloaded. Open WhatsApp now?")) window.sendWhatsApp(o.customer.phone, "Here is your bill (attach image)"); }, 1000);
+                setTimeout(() => { if(confirm("Bill Downloaded. Open WhatsApp now?")) window.sendWhatsApp(o.customer.phone, "Here is your bill....."); }, 1000);
             });
         };
     </script>
