@@ -460,7 +460,7 @@
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // FIREBASE CONFIG - USER PROVIDED
+        // FIREBASE CONFIG
         const firebaseConfig = {
             apiKey: "AIzaSyAFyPxYstLeXFCZkoCJr8NeFRvazMeEju4",
             authDomain: "boot-7e65c.firebaseapp.com",
@@ -614,7 +614,7 @@
             if (file.name.toLowerCase().endsWith('.heic') || file.type === 'image/heic') {
                 if (window.heic2any) {
                     try {
-                        const blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 1.0 });
+                        const blob = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.6 });
                         imageFile = Array.isArray(blob) ? blob[0] : blob;
                     } catch(e) { console.error("HEIC convert failed", e); }
                 }
@@ -1038,7 +1038,6 @@
 
         // Bill Logic
         window.shareBill = async (id) => {
-            showLoading("Generating Bill...");
             const o = window.orders.find(x => x.id === id);
             const canvas = document.getElementById('billCanvas');
             const ctx = canvas.getContext('2d');
@@ -1052,8 +1051,7 @@
                     dynamicHeight += 120; // Rough item height
                 });
             }
-            // Increase base height to ensure footer fits
-            const height = 1500 + dynamicHeight; 
+            const height = 1300 + dynamicHeight; 
             canvas.width = width; 
             canvas.height = height;
             
@@ -1062,15 +1060,19 @@
             // Header
             const logoImg = document.getElementById('logo-img-res');
             let logoDrawn = false;
-            try { if(logoImg.complete) { ctx.drawImage(logoImg, width/2 - 150, 50, 300, 300 * (logoImg.height/logoImg.width)); logoDrawn=true; }} catch(e){}
+            try { if(logoImg.complete && logoImg.naturalWidth > 0) { 
+                ctx.drawImage(logoImg, width/2 - 150, 50, 300, 300 * (logoImg.height/logoImg.width)); 
+                logoDrawn=true; 
+            }} catch(e){}
             if(!logoDrawn) { ctx.fillStyle = "#4E342E"; ctx.font = "bold 60px sans-serif"; ctx.textAlign = "center"; ctx.fillText("MR BOOT", width/2, 200); }
             ctx.fillStyle="#4E342E"; ctx.font = "30px sans-serif"; ctx.textAlign="center"; ctx.fillText("SHOE LAUNDRY", width/2, 380);
             
-            // Try fetch Main Photo
+            // Try fetch Main Photo - Using same ID logic as view order
+            // Adding a check for mainBlob to prevent "null" errors
+            let mainBlob = null;
             try {
                 const q = query(collection(db, "images"), where("orderId", "==", String(id)));
                 const snap = await getDocs(q);
-                let mainBlob = null;
                 // Priority: 'main' > 'intake'
                 snap.forEach(doc => {
                     const d = doc.data();
@@ -1154,20 +1156,13 @@
             // Adjusted footer position to be relative to canvas height
             ctx.fillText('Thank u for Cooperation', width/2, height - 50);
             
-            hideLoading();
-
-            try {
-                canvas.toBlob(blob => {
-                    if (!blob) { alert("Bill generation failed (Browser Security). Please Screenshot."); return; }
-                    const a = document.createElement('a');
-                    a.download = `bill_${o.seqId}.png`;
-                    a.href = URL.createObjectURL(blob);
-                    a.click();
-                    setTimeout(() => { if(confirm("Bill Downloaded. Open WhatsApp now?")) window.sendWhatsApp(o.customer.phone, "Here is your bill....."); }, 1000);
-                });
-            } catch(e) {
-                alert("Canvas Tainted (Security Error). Please use Screenshot.");
-            }
+            canvas.toBlob(blob => {
+                const a = document.createElement('a');
+                a.download = `bill_${o.seqId}.png`;
+                a.href = URL.createObjectURL(blob);
+                a.click();
+                setTimeout(() => { if(confirm("Bill Downloaded. Open WhatsApp now?")) window.sendWhatsApp(o.customer.phone, "Here is your bill (attach image)"); }, 1000);
+            });
         };
     </script>
 </body>
