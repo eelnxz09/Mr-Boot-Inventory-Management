@@ -22,7 +22,7 @@
             --info: #007AFF;
 
             /* UI Constants */
-            --header-h: 60px;
+            --header-h: 70px;
             --nav-h: 70px;
             --radius: 16px;
             --shadow: 0 4px 12px rgba(0,0,0,0.06);
@@ -35,11 +35,11 @@
         header {
             height: var(--header-h); background: var(--bg-card); 
             display: flex; align-items: center; justify-content: space-between;
-            padding: 0 20px; position: fixed; top: 0; width: 100%; z-index: 1000;
+            padding: 0 16px; position: fixed; top: 0; width: 100%; z-index: 1000;
             border-bottom: 1px solid rgba(0,0,0,0.05);
         }
+        .header-logo { height: 50px; width: auto; object-fit: contain; }
         .app-title h1 { font-size: 20px; font-weight: 700; margin: 0; color: var(--primary); letter-spacing: -0.5px; }
-        .app-title span { font-size: 10px; color: var(--text-sub); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
         
         main { flex: 1; margin-top: var(--header-h); margin-bottom: var(--nav-h); overflow-y: auto; scroll-behavior: smooth; position: relative; padding-top: 10px; }
         
@@ -154,23 +154,34 @@
         .img-grid { display: flex; gap: 8px; overflow-x: auto; padding: 8px 0; }
         .img-thumb { width: 70px; height: 70px; border-radius: 8px; object-fit: cover; border: 1px solid #ddd; flex-shrink: 0; }
 
+        /* Service Option Items */
+        .service-option { animation: fadeIn 0.1s; }
+        .service-option:active { background-color: #f5f5f5; }
+
     </style>
 </head>
 <body>
 
     <!-- MAIN APP -->
     <header>
-        <div class="app-title">
-            <h1>Mr Boot</h1>
-            <span>Inventory & Service</span>
+        <div style="display:flex; align-items:center; gap:12px;">
+            <!-- Logo Image -->
+            <img id="header-logo" src="Shoe_Laundry_Logo-removebg-preview.jpg" class="header-logo" onerror="this.style.display='none'; document.getElementById('header-text').style.display='block';">
+            <div id="header-text" class="app-title" style="display:none;">
+                <h1>Mr Boot</h1>
+                <span style="font-size:10px; color:var(--text-sub);">Inventory & Service</span>
+            </div>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
             <div id="db-status" style="width:8px; height:8px; border-radius:50%; background:#ccc;"></div>
         </div>
     </header>
 
-    <!-- HIDDEN CANVAS -->
+    <!-- HIDDEN RESOURCES -->
     <canvas id="billCanvas" style="display:none;"></canvas>
+    
+    <!-- Direct link guess based on user input. Ideally these should be base64 or local images for offline robustness -->
+    <img id="logo-img-res" src="Shoe_Laundry_Logo-removebg-preview.jpg" crossorigin="anonymous" style="display:none;">
 
     <main>
         <!-- ORDERS MODULE -->
@@ -203,8 +214,8 @@
         <!-- INVENTORY MODULE -->
         <section id="view-inventory" class="view">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
-                <h3 style="margin:0;">Stock Items</h3>
-                <button onclick="openInventoryModal()" style="padding:8px 16px; background:var(--primary); color:white; border:none; border-radius:8px; font-size:13px;">+ Add Stock</button>
+                <h3 style="margin:0;">Add-ons / Stock</h3>
+                <button onclick="openInventoryModal()" style="padding:8px 16px; background:var(--primary); color:white; border:none; border-radius:8px; font-size:13px;">+ Add Item</button>
             </div>
             <div id="inventory-list"></div>
         </section>
@@ -253,26 +264,6 @@
         </section>
     </main>
 
-    <!-- NAVIGATION -->
-    <nav>
-        <a href="#" class="nav-item active" onclick="switchView('orders', this)">
-            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-            <span>Orders</span>
-        </a>
-        <a href="#" class="nav-item" onclick="switchView('customers', this)">
-            <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-            <span>Customers</span>
-        </a>
-        <a href="#" class="nav-item" id="nav-inventory" onclick="switchView('inventory', this)">
-            <svg viewBox="0 0 24 24"><path d="M20 13H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM7 19c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM20 3H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zM7 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/></svg>
-            <span>Inventory</span>
-        </a>
-        <a href="#" class="nav-item" id="nav-reports" onclick="switchView('reports', this)">
-            <svg viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
-            <span>Reports</span>
-        </a>
-    </nav>
-
     <!-- NEW ORDER MODAL -->
     <div id="modal-order" class="modal">
         <div class="modal-header">
@@ -294,16 +285,16 @@
                 </div>
 
                 <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <label>Items (Shoes)</label>
-                    <button type="button" class="btn btn-small btn-outline" onclick="addOrderItem()">+ Add Shoe</button>
+                    <label>Items (Shoes/Bags)</label>
+                    <button type="button" class="btn btn-small btn-outline" onclick="addOrderItem()">+ Add Item</button>
                 </div>
                 <div id="order-items-container">
                     <!-- Dynamic Items -->
                 </div>
 
-                <label style="margin-top:16px;">Stock & Intake Images</label>
+                <label style="margin-top:16px;">Add-ons (Laces, Insoles, etc.)</label>
                 <select id="ord-stock-item" onchange="updateStockLabel()">
-                    <option value="">-- No Inventory Used --</option>
+                    <option value="">-- Select Inventory --</option>
                 </select>
                 <p id="stock-hint" style="font-size:11px; color:var(--text-sub); margin-top:-10px; margin-bottom:16px;"></p>
                 
@@ -350,6 +341,20 @@
 
                 <button type="submit" class="btn btn-primary">Create Order</button>
             </form>
+        </div>
+    </div>
+
+    <!-- SERVICE SELECTOR MODAL -->
+    <div id="modal-service-selector" class="modal" style="z-index: 2100;">
+        <div class="modal-header">
+            <h3>Select Services</h3>
+            <button class="close-btn" onclick="closeModal('modal-service-selector')">&times;</button>
+        </div>
+        <div class="modal-body" style="padding:0;">
+            <div id="service-options-container"></div>
+        </div>
+        <div style="padding:16px; border-top:1px solid #eee; background:white; position:sticky; bottom:0;">
+            <button class="btn btn-primary" onclick="saveServiceSelection()">Confirm</button>
         </div>
     </div>
 
@@ -424,12 +429,24 @@
     </div>
 
     <script>
-        // Global Error Handler for debugging "Gray Screen"
+        // Global Error Handler for debugging
         window.onerror = function(message, source, lineno, colno, error) {
-            alert(`App Crash Detected:\n${message}\nLine: ${lineno}`);
+            console.error(`App Crash: ${message} at line ${lineno}`);
         };
 
-        const REVIEW_LINK = "https://search.google.com/local/writereview?placeid=YOUR_PLACE_ID_HERE";
+        const REVIEW_LINK = "https://g.page/r/Ce0M0864Elt6EBE/review";
+        const LOGO_URL = "https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png"; 
+        
+        // Multi-Select Data
+        const ALL_SERVICES = [
+            "Standard Laundry", "Premium Deep Clean", "Sole Pasting",
+            "Net Change", "Sole Change", "Heel Change",
+            "Patch Work", "Grip Rubber", "Grip TPR",
+            "Bag Chain Change", "Tongue Change", "Insole Change",
+            "Colour Dye", "Repair", "Other"
+        ];
+        let currentServiceInput = null;
+
         let db;
         const DB_NAME = "MrBootDB";
         const DB_VERSION = 2; 
@@ -450,6 +467,7 @@
             request.onsuccess = (e) => {
                 db = e.target.result;
                 document.getElementById('db-status').style.background = '#34C759';
+                renderOrders();
             };
             request.onerror = () => document.getElementById('db-status').style.background = '#FF3B30';
         };
@@ -480,7 +498,7 @@
         };
 
         const getImages = (orderId, container, typeFilter = 'intake') => {
-            if (!db) { container.innerHTML = "DB Loading..."; return; }
+            if (!db) { container.innerHTML = "Loading..."; return; }
             const transaction = db.transaction(['images'], 'readonly');
             const request = transaction.objectStore('images').getAll();
             container.innerHTML = '<p style="text-align:center; width:100%; color:#999; font-size:11px;">Loading...</p>';
@@ -517,6 +535,37 @@
             }
         }
 
+        // --- Multi Service Selector ---
+        function openServiceSelector(el) {
+            currentServiceInput = el;
+            const currentVals = el.value.split(', ').filter(s => s);
+            const container = document.getElementById('service-options-container');
+            container.innerHTML = '';
+            
+            ALL_SERVICES.forEach(svc => {
+                const checked = currentVals.includes(svc) ? 'checked' : '';
+                const div = document.createElement('div');
+                div.className = 'service-option';
+                div.innerHTML = `
+                    <label style="display:flex; align-items:center; margin:0; padding:16px; border-bottom:1px solid #eee; cursor:pointer;">
+                        <input type="checkbox" value="${svc}" ${checked} style="width:20px; height:20px; margin:0 16px 0 0;">
+                        <span style="font-size:16px;">${svc}</span>
+                    </label>
+                `;
+                container.appendChild(div);
+            });
+            
+            document.getElementById('modal-service-selector').classList.add('open');
+        }
+
+        function saveServiceSelection() {
+            const checked = Array.from(document.querySelectorAll('#service-options-container input:checked')).map(cb => cb.value);
+            if(currentServiceInput) {
+                currentServiceInput.value = checked.join(', ');
+            }
+            closeModal('modal-service-selector');
+        }
+
         // --- Dynamic Items Logic ---
         function addOrderItem() {
             const container = document.getElementById('order-items-container');
@@ -527,14 +576,18 @@
                 <div class="flex-row">
                     <input type="text" class="item-brand" placeholder="Brand (e.g. Nike)" style="flex:1; margin-bottom:8px;">
                     <select class="item-type" style="flex:1; margin-bottom:8px;">
-                        <option>Sneakers</option><option>Formals</option><option>Boots</option><option>Heels</option><option>Sandals</option>
+                        <option>Sneaker</option><option>Sport Shoe</option><option>Formals</option><option>Formals Suede</option>
+                        <option>Boots</option><option>Heels</option><option>Sandals</option><option>Chappals</option>
+                        <option>Kolhapuri</option><option>Bags</option><option>Jackets</option><option>Other</option>
                     </select>
                 </div>
                 <div class="flex-row">
-                    <select class="item-service" style="flex:1; margin-bottom:0;">
-                        <option>Standard Laundry</option><option>Premium Deep Clean</option><option>Sole Pasting</option><option>Repair</option>
-                    </select>
-                    <input type="number" class="item-price" placeholder="Price" style="flex:0.6; margin-bottom:0;" oninput="calcBalance()">
+                    <!-- Read-only input triggered modal -->
+                    <input type="text" class="item-service" placeholder="Select Services" readonly onclick="openServiceSelector(this)" style="flex:1; margin-bottom:8px; background-color: #fff; border: 1px solid var(--primary); cursor: pointer;">
+                </div>
+                <div class="flex-row">
+                    <input type="text" class="item-specs" placeholder="Work Specification (e.g. White Sole)" style="flex:1.5; margin-bottom:0; font-size:14px;">
+                    <input type="number" class="item-price" placeholder="Price" style="flex:0.8; margin-bottom:0;" oninput="calcBalance()">
                 </div>
             `;
             container.appendChild(div);
@@ -575,12 +628,13 @@
                 items.push({
                     brand: row.querySelector('.item-brand').value,
                     type: row.querySelector('.item-type').value,
-                    service: row.querySelector('.item-service').value,
+                    service: row.querySelector('.item-service').value, // Now gets string from readonly input
+                    specs: row.querySelector('.item-specs').value,
                     price: parseFloat(row.querySelector('.item-price').value) || 0
                 });
             });
 
-            if(items.length === 0) { alert("Please add at least one shoe item."); return; }
+            if(items.length === 0) { alert("Please add at least one item."); return; }
 
             const seqId = generateOrderId();
             const id = Date.now();
@@ -666,8 +720,9 @@
 
             try {
                 await storeImages(pendingCompleteId, fileInput.files, 'proof');
-                updateStatus(pendingCompleteId, 'Completed');
+                updateStatus(pendingCompleteId, 'Completed', false); 
                 closeModal('modal-proof');
+                openViewOrder(pendingCompleteId); // Refresh view
             } catch (err) {
                 console.error(err);
                 alert("Error saving proof. Please try again.");
@@ -715,7 +770,7 @@
                             <span class="badge ${badgeClass}" style="margin-left:8px;">${o.status}</span>
                         </div>
                     </div>
-                    <div class="order-details">${itemSummary}</div>
+                    <div class="order-details" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${itemSummary}</div>
                     <div class="order-footer">
                         <span class="price-tag">₹${o.financials.total}</span>
                         ${o.financials.balance > 0 ? `<span class="balance-due">Due: ₹${o.financials.balance}</span>` : '<span style="color:var(--success); font-size:12px; font-weight:600;">Paid</span>'}
@@ -734,9 +789,10 @@
             if (order.items) {
                 itemsHtml = order.items.map(i => `
                     <div style="display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:8px 0;">
-                        <div>
+                        <div style="flex:1; padding-right:10px;">
                             <strong>${i.brand}</strong> <span style="color:#666;">${i.type}</span><br>
-                            <span style="font-size:12px; color:#888;">${i.service}</span>
+                            <span style="font-size:13px; color:#333; line-height:1.4; display:block; margin-top:2px;">${i.service}</span><br>
+                            ${i.specs ? `<span style="font-size:11px; color:#888; font-style:italic;">${i.specs}</span>` : ''}
                         </div>
                         <div style="font-weight:600;">₹${i.price}</div>
                     </div>
@@ -897,7 +953,7 @@
 
         function populateStockDropdown() {
             const sel = document.getElementById('ord-stock-item');
-            sel.innerHTML = '<option value="">-- No Inventory Used --</option>';
+            sel.innerHTML = '<option value="">-- Select Inventory --</option>';
             inventory.forEach(i => {
                 if(i.qty > 0) {
                     const opt = document.createElement('option');
@@ -919,17 +975,33 @@
             if(viewId === 'reports') renderReports();
         }
 
-        function updateStatus(id, status) {
+        function updateStatus(id, status, closeMainModal = true) {
             const idx = orders.findIndex(o => o.id === id);
             if(idx > -1) {
                 orders[idx].status = status;
                 if(status === 'Completed') orders[idx].financials.balance = 0;
                 localStorage.setItem('mrboot_orders', JSON.stringify(orders));
-                closeModal('modal-view-order');
+                if(closeMainModal) closeModal('modal-view-order');
                 renderOrders();
                 renderReports();
                 checkDeliveryAlerts();
             }
+        }
+
+        function saveInventory(e) {
+            e.preventDefault();
+            const item = {
+                id: Date.now(),
+                name: document.getElementById('inv-name').value,
+                brand: document.getElementById('inv-brand').value,
+                qty: parseInt(document.getElementById('inv-qty').value) || 0,
+                price: parseFloat(document.getElementById('inv-price').value) || 0
+            };
+            inventory.unshift(item); // Add to top usually better for UI
+            localStorage.setItem('mrboot_inventory', JSON.stringify(inventory));
+            closeModal('modal-inventory');
+            renderInventory();
+            e.target.reset();
         }
 
         function openImageModal(blob) { document.getElementById('preview-full-img').src = blob; document.getElementById('modal-image-preview').classList.add('open'); }
@@ -975,67 +1047,179 @@
 
         function sendWhatsApp(phone, text) { window.open(`https://wa.me/91${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank'); }
         function getReadyText(o) { return `\uD83D\uDC4B Hello ${o.customer.name},\n\n\u2705 Your order *#${o.seqId}* is ready!\n\n\uD83D\uDCB0 Balance: \u20B9${o.financials.balance}\n\n\uD83D\uDCCD Pickup at Mr Boot.`; }
-        function getReviewText(o) { return `\uD83D\uDE4F Hi ${o.customer.name},\n\nThanks for choosing Mr Boot! Pls review us:\n${REVIEW_LINK}`; }
+        function getReviewText(o) { return `Mr.Boot Shoe Laundry And Repairing Services would love your feedback. Post a review to our profile.\n${REVIEW_LINK}`; }
+
+        // --- Canvas Helper: Wrap Text ---
+        function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            let currentY = y;
+
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = ctx.measureText(testLine);
+                const testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    ctx.fillText(line, x, currentY);
+                    line = words[n] + ' ';
+                    currentY += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            ctx.fillText(line, x, currentY);
+            return currentY + lineHeight;
+        }
 
         async function shareBill(o) {
             const canvas = document.getElementById('billCanvas');
             const ctx = canvas.getContext('2d');
-            const itemCount = o.items ? o.items.length : 1;
-            const baseHeight = 850;
-            const itemHeight = 60;
-            canvas.width = 600; 
-            canvas.height = baseHeight + (itemCount * itemHeight);
+            const width = 900;
             
-            ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
-            ctx.fillStyle='#4E342E'; ctx.fillRect(0,0,600,100);
-            ctx.fillStyle='#fff'; ctx.font='bold 36px sans-serif'; ctx.textAlign='center'; ctx.fillText('MR BOOT',300,50);
-            ctx.font='16px sans-serif'; ctx.fillText('SHOE LAUNDRY & REPAIR',300,80);
-            
-            ctx.textAlign='left'; ctx.fillStyle='#000';
-            ctx.font='bold 24px sans-serif'; ctx.fillText(`ORDER #${o.seqId}`,40,160);
-            ctx.font='18px sans-serif'; ctx.textAlign='right'; ctx.fillText(o.date,560,160);
-            
-            ctx.textAlign='left'; ctx.font='18px sans-serif'; ctx.fillStyle='#555';
-            ctx.fillText('Customer:',40,210); ctx.fillStyle='#000'; ctx.font='bold 22px sans-serif';
-            ctx.fillText(o.customer.name,40,240); ctx.font='18px sans-serif'; ctx.fillText(o.customer.phone,40,270);
-            if(o.deliveryDate) {
-                ctx.fillStyle='#E65100'; ctx.font='bold 16px sans-serif';
-                ctx.fillText(`Expected Delivery: ${o.deliveryDate}`, 40, 295);
-            }
-            
-            ctx.strokeStyle='#ddd'; ctx.lineWidth=2;
-            ctx.beginPath(); ctx.moveTo(40,310); ctx.lineTo(560,310); ctx.stroke();
-            
-            ctx.fillStyle='#000'; ctx.font='bold 18px sans-serif'; ctx.fillText('DETAILS',40,340);
-            
-            let y = 370;
+            // Calculate dynamic height based on text length
+            let dynamicContentHeight = 0;
+            ctx.font = 'italic 30px sans-serif'; // Set font for measurement
             if(o.items) {
                 o.items.forEach(item => {
-                    ctx.fillStyle='#000'; ctx.font='20px sans-serif';
-                    ctx.fillText(`${item.brand} - ${item.type}`, 40, y);
-                    ctx.textAlign='right'; ctx.fillText(`\u20B9${item.price}`, 560, y);
-                    ctx.textAlign='left'; y += 25;
-                    ctx.fillStyle='#555'; ctx.font='italic 16px sans-serif';
-                    ctx.fillText(item.service, 40, y); y += 40;
+                    // Approx height per item block
+                    dynamicContentHeight += 70; // Brand/Type
+                    // Measure wrapped service text
+                    const words = item.service.split(' ');
+                    let line = '';
+                    let lines = 1;
+                    for(let n=0; n<words.length; n++) {
+                        if (ctx.measureText(line + words[n]).width > 800) { lines++; line = ''; }
+                        line += words[n] + ' ';
+                    }
+                    dynamicContentHeight += (lines * 40); // Service lines
+                    if(item.specs) dynamicContentHeight += 35;
+                    dynamicContentHeight += 20; // Padding
                 });
-            } else if (o.details) {
-                ctx.fillStyle='#000'; ctx.font='20px sans-serif'; ctx.fillText(`${o.details.qty} x ${o.details.type}`,40,y);
-                y+=25; ctx.fillStyle='#555'; ctx.font='italic 16px sans-serif'; ctx.fillText(o.details.service,40,y); y+=40;
-            }
-            
-            if(o.delivery && o.delivery.mode === 'Pickup') {
-                ctx.fillStyle='#007AFF'; ctx.font='16px sans-serif'; ctx.fillText(`Delivery Charge`, 40, y);
-                ctx.textAlign='right'; ctx.fillText(`\u20B9${o.delivery.charge}`, 560, y); ctx.textAlign='left'; y += 40;
+            } else {
+                dynamicContentHeight = 300; // fallback
             }
 
-            const footerY = y + 20;
-            ctx.fillStyle='#F9F9F9'; ctx.fillRect(40,footerY,520,200);
-            ctx.fillStyle='#000'; ctx.font='20px sans-serif';
-            ctx.fillText('Total',70,footerY+50); ctx.textAlign='right'; ctx.fillText(`\u20B9${o.financials.total}`,530,footerY+50);
-            ctx.textAlign='left'; ctx.fillText('Advance',70,footerY+90); ctx.textAlign='right'; ctx.fillText(`- \u20B9${o.financials.advance}`,530,footerY+90);
-            ctx.textAlign='left'; ctx.fillStyle='#d32f2f'; ctx.font='bold 28px sans-serif';
-            ctx.fillText('BALANCE',70,footerY+150); ctx.textAlign='right'; ctx.fillText(`\u20B9${o.financials.balance}`,530,footerY+150);
-            ctx.textAlign='center'; ctx.fillStyle='#999'; ctx.font='14px sans-serif'; ctx.fillText('Thank you for your business!',300,footerY+250);
+            const baseHeight = 1300; 
+            const height = baseHeight + dynamicContentHeight; // 9:16 Ratio approx
+            canvas.width = width; 
+            canvas.height = height;
+            
+            // Background
+            ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,width,height);
+            
+            // Header - Logo Area (Try to draw logo from header img if loaded, else text)
+            const logoImg = document.getElementById('header-logo');
+            let logoDrawn = false;
+            if(logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+                try {
+                    const logoSize = 300;
+                    const aspect = logoImg.naturalWidth / logoImg.naturalHeight;
+                    const drawW = logoSize * aspect;
+                    // Center logo
+                    ctx.drawImage(logoImg, (width/2)-(drawW/2), 50, drawW, logoSize);
+                    logoDrawn = true;
+                } catch(e) { console.log("Logo draw error", e); }
+            }
+            
+            if(!logoDrawn) {
+                ctx.fillStyle='#4E342E'; 
+                ctx.font='bold 60px sans-serif'; ctx.textAlign='center'; 
+                ctx.fillText('MR BOOT', width/2, 200);
+            }
+            
+            ctx.fillStyle='#4E342E';
+            ctx.font='30px sans-serif'; ctx.textAlign='center';
+            ctx.fillText('SHOE LAUNDRY & REPAIR', width/2, 380);
+            
+            // Try to draw Intake Photo
+            if(db) {
+                // ... (Existing photo drawing logic remains same) ...
+                const firstImageBlob = await new Promise(resolve => {
+                    const transaction = db.transaction(['images'], 'readonly');
+                    const store = transaction.objectStore('images');
+                    const req = store.getAll();
+                    req.onsuccess = () => {
+                        const img = req.result.find(i => i.id.startsWith(`${o.id}_intake_0`));
+                        resolve(img ? img.blob : null);
+                    };
+                    req.onerror = () => resolve(null);
+                });
+
+                if(firstImageBlob) {
+                    const imgObj = new Image();
+                    imgObj.src = firstImageBlob;
+                    await new Promise(r => imgObj.onload = r);
+                    const imgH = 500;
+                    const scale = Math.min(800/imgObj.width, imgH/imgObj.height);
+                    const drawW = imgObj.width * scale;
+                    const drawH = imgObj.height * scale;
+                    ctx.drawImage(imgObj, (width/2)-(drawW/2), 430, drawW, drawH);
+                }
+            }
+
+            // Order Details Section
+            let y = 980;
+            ctx.fillStyle='#000'; ctx.textAlign='left';
+            ctx.font='bold 40px sans-serif'; 
+            ctx.fillText(`ORDER #${o.seqId}`, 50, y);
+            ctx.textAlign='right';
+            ctx.font='35px sans-serif';
+            ctx.fillText(o.date, 850, y);
+            
+            y += 60;
+            ctx.beginPath(); ctx.moveTo(50,y); ctx.lineTo(850,y); ctx.lineWidth=3; ctx.strokeStyle='#eee'; ctx.stroke();
+            y += 60;
+
+            // Items List
+            ctx.textAlign='left';
+            if(o.items) {
+                o.items.forEach(item => {
+                    ctx.font='bold 36px sans-serif'; ctx.fillStyle='#000';
+                    ctx.textAlign='left';
+                    ctx.fillText(`${item.brand} ${item.type}`, 50, y);
+                    
+                    ctx.textAlign='right'; 
+                    ctx.fillText(`\u20B9${item.price}`, 850, y);
+                    
+                    y += 45;
+                    ctx.textAlign='left'; ctx.font='italic 30px sans-serif'; ctx.fillStyle='#666';
+                    
+                    // Wrap Service Text
+                    y = wrapText(ctx, item.service, 50, y, 800, 40);
+                    
+                    if(item.specs) {
+                        ctx.font='30px sans-serif'; ctx.fillStyle='#888';
+                        y = wrapText(ctx, `(${item.specs})`, 50, y, 800, 35);
+                    }
+                    y += 30; // Spacing between items
+                });
+            }
+
+            // Financials Box at Bottom (Dynamic position)
+            const boxTop = y + 40;
+            ctx.fillStyle='#F9F9F9'; ctx.fillRect(40, boxTop, 820, 250);
+            
+            y = boxTop + 60;
+            ctx.fillStyle='#000'; ctx.font='36px sans-serif'; ctx.textAlign='left';
+            ctx.fillText('Total Amount', 80, y); 
+            ctx.textAlign='right'; ctx.font='bold 36px sans-serif';
+            ctx.fillText(`\u20B9${o.financials.total}`, 820, y);
+            
+            y += 60;
+            ctx.textAlign='left'; ctx.font='36px sans-serif'; ctx.fillStyle='#000';
+            ctx.fillText('Advance Paid', 80, y);
+            ctx.textAlign='right'; ctx.fillStyle='#34C759';
+            ctx.fillText(`- \u20B9${o.financials.advance}`, 820, y);
+            
+            y += 70;
+            ctx.textAlign='left'; ctx.fillStyle='#FF3B30'; ctx.font='bold 45px sans-serif';
+            ctx.fillText('BALANCE DUE', 80, y);
+            ctx.textAlign='right'; 
+            ctx.fillText(`\u20B9${o.financials.balance}`, 820, y);
+
+            // Footer
+            ctx.fillStyle='#888'; ctx.font='30px sans-serif'; ctx.textAlign='center';
+            ctx.fillText('Thank u for Cooperation', width/2, height - 30);
 
             canvas.toBlob(blob => {
                 const file = new File([blob], `bill_${o.seqId}.png`, { type: 'image/png' });
@@ -1075,14 +1259,16 @@
             r.readAsText(f);
         }
 
-        // Init Sequence
-        initDB();
-        renderOrders();
-        renderReports();
-        checkDeliveryAlerts();
-        
-        // Force Switch to Orders to ensure UI is visible
-        switchView('orders');
+        // Init Sequence - Wrapped in window.onload for safety
+        window.onload = function() {
+            initDB();
+            renderOrders();
+            renderReports();
+            checkDeliveryAlerts();
+            
+            // Force Switch to Orders to ensure UI is visible
+            switchView('orders');
+        };
     </script>
 </body>
 </html>
