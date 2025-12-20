@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mr Boot Manager v3.0</title>
+    <title>Mr Boot Manager v3.1</title>
     <!-- HEIC Conversion Library -->
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <style>
@@ -188,7 +188,7 @@
     <!-- GLOBAL ERROR HANDLER -->
     <script>
         window.onerror = function(msg, url, line) {
-            // console.error("App Error: " + msg + "\nLine: " + line);
+            // alert("App Error: " + msg + "\nLine: " + line);
         };
     </script>
 </head>
@@ -230,7 +230,7 @@
             <!-- Logo -->
             <img id="header-logo" src="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png" class="header-logo" onerror="this.style.display='none'; document.getElementById('header-text').style.display='block';">
             <div id="header-text" class="app-title" style="display:none;">
-                <h1>Mr Boot v3.0</h1>
+                <h1>Mr Boot v3.1</h1>
                 <span style="font-size:10px; color:var(--text-sub);">Inventory & Service</span>
             </div>
         </div>
@@ -975,7 +975,9 @@
         }
         window.sendWhatsApp = (phone, text) => window.open(`https://wa.me/91${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text)}`, '_blank');
         window.openImageModal = (src) => { document.getElementById('preview-full-img').src=src; document.getElementById('modal-image-preview').classList.add('open'); };
-        
+        window.backupData = () => alert("Online mode is active. Data is already in cloud.");
+        window.restoreData = () => alert("Online mode is active. Data is pulled from cloud.");
+
         window.renderReports = () => {
             let rev=0, pend=0, prof=0;
             window.orders.forEach(o => { 
@@ -1072,9 +1074,31 @@
             // Header
             const logoImg = document.getElementById('logo-img-res');
             let logoDrawn = false;
-            try { if(logoImg.complete) { ctx.drawImage(logoImg, width/2 - 150, 50, 300, 300 * (logoImg.height/logoImg.width)); logoDrawn=true; }} catch(e){}
-            if(!logoDrawn) { ctx.fillStyle = "#4E342E"; ctx.font = "bold 60px sans-serif"; ctx.textAlign = "center"; ctx.fillText("MR BOOT", width/2, 200); }
-            ctx.fillStyle="#4E342E"; ctx.font = "30px sans-serif"; ctx.textAlign="center"; ctx.fillText("SHOE LAUNDRY", width/2, 380);
+            try { 
+                if(logoImg.complete && logoImg.naturalWidth > 0) { 
+                    ctx.beginPath();
+                    ctx.arc(100, 90, 50, 0, 2 * Math.PI); 
+                    ctx.fillStyle = "white";
+                    ctx.fill();
+                    ctx.save();
+                    ctx.clip();
+                    ctx.drawImage(logoImg, 50, 40, 100, 100); 
+                    ctx.restore();
+                    logoDrawn = true;
+                }
+            } catch(e){}
+
+            // Header Section
+            ctx.fillStyle = "#4E342E"; 
+            ctx.fillRect(0, 0, width, 180);
+
+            // Title (Centered)
+            ctx.textAlign = "center"; 
+            ctx.fillStyle = "white"; 
+            ctx.font = "bold 50px sans-serif"; 
+            ctx.fillText("MR BOOT", width/2, 90);
+            ctx.font = "24px sans-serif"; 
+            ctx.fillText("SHOE LAUNDRY & REPAIR SERVICE", width/2, 130);
             
             // Try fetch Main Photo
             try {
@@ -1171,45 +1195,6 @@
                 a.click();
                 setTimeout(() => { if(confirm("Bill Downloaded. Open WhatsApp now?")) window.sendWhatsApp(o.customer.phone, "Here is your bill (attach image)"); }, 1000);
             });
-        };
-
-        // --- BULK & SELECTION ---
-        window.toggleSelectMode = () => {
-            window.isSelectMode = !window.isSelectMode;
-            window.selectedOrders.clear();
-            const btn = document.getElementById('btn-select-mode');
-            const bar = document.getElementById('bulk-actions-bar');
-            
-            if (window.isSelectMode) {
-                btn.innerText = "Cancel";
-                bar.classList.add('visible');
-            } else {
-                btn.innerText = "Select";
-                bar.classList.remove('visible');
-            }
-            window.renderOrders();
-        };
-
-        window.toggleOrderSelection = (id) => {
-            if (window.selectedOrders.has(id)) window.selectedOrders.delete(id);
-            else window.selectedOrders.add(id);
-            document.getElementById('bulk-count').innerText = window.selectedOrders.size;
-            window.renderOrders();
-        };
-
-        window.performBulkAction = async (action) => {
-            if (window.selectedOrders.size === 0) return alert("No orders selected");
-            if (!confirm(`${action} ${window.selectedOrders.size} orders?`)) return;
-
-            showLoading("Processing...");
-            try {
-                const updates = Array.from(window.selectedOrders).map(async (id) => {
-                    if (action === 'Delete') await deleteDoc(doc(db, "orders", id));
-                    else if (action === 'Ready') await updateDoc(doc(db, "orders", id), { status: 'Ready' });
-                });
-                await Promise.all(updates);
-                window.toggleSelectMode(); 
-            } catch (e) { alert("Bulk action failed: " + e.message); } finally { hideLoading(); }
         };
     </script>
 </body>
