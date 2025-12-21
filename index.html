@@ -131,7 +131,8 @@
         .btn-whatsapp { background: #25D366; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn:disabled { opacity: 0.6; cursor: not-allowed; background: #999; }
         
-        .flex-row { display: flex; gap: 10px; }
+        .flex-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        #order-action-bar { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-start; }
         .hidden { display: none !important; }
         .img-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 1px solid #ddd; margin-right: 8px; cursor: pointer; }
         
@@ -410,7 +411,13 @@
     <div id="modal-service-selector" class="modal" style="z-index: 3100;">
         <div class="modal-header"><h3>Select Services</h3><button class="close-btn" onclick="window.closeModal('modal-service-selector')">&times;</button></div>
         <div class="modal-body" id="service-options-container" style="padding:0;"></div>
-        <div style="padding:16px; border-top:1px solid #eee;"><button class="btn btn-primary" onclick="window.saveServiceSelection()">Confirm</button></div>
+        <div style="padding:16px; border-top:1px solid #eee;">
+            <div id="other-service-box" style="display:none; margin-bottom:12px;">
+                <label style="font-size:12px; color:#666;">Specify "Other" Service:</label>
+                <input type="text" id="other-service-input" placeholder="Enter custom service name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px; margin-top:4px;">
+            </div>
+            <button class="btn btn-primary" onclick="window.saveServiceSelection()">Confirm</button>
+        </div>
     </div>
 
     <div id="modal-view-order" class="modal">
@@ -583,7 +590,43 @@
         
         let pendingCompleteId, viewingOrderId, currentServiceInput;
         const REVIEW_LINK = "https://g.page/r/Ce0M0864Elt6EBE/review";
-        const ALL_SERVICES = ["Standard Laundry", "Premium Deep Clean", "Sole Pasting", "Net Change", "Sole Change", "Heel Change", "Patch Work", "Grip Rubber", "Grip TPR", "Bag Chain Change", "Tongue Change", "Insole Change", "Colour Dye", "Repair", "Other"];
+        const ALL_SERVICES = [
+            "Standard Laundry", 
+            "Premium Deep Clean", 
+            "Shoe Polish",
+            "Waterproofing",
+            "Stain Removal",
+            "Odor Treatment",
+            "Sole Pasting", 
+            "Sole Change", 
+            "Heel Change",
+            "Heel Repair",
+            "Zipper Repair",
+            "Zipper Change",
+            "Net Change", 
+            "Patch Work", 
+            "Stitching Repair",
+            "Grip Rubber", 
+            "Grip TPR", 
+            "Tongue Change", 
+            "Insole Change",
+            "Lace Replacement",
+            "Buckle Repair",
+            "Strap Repair",
+            "Bag Chain Change",
+            "Bag Zipper Repair",
+            "Bag Handle Repair",
+            "Colour Dye",
+            "Color Restoration", 
+            "Whitening Treatment",
+            "Suede Cleaning",
+            "Canvas Cleaning",
+            "Leather Conditioning",
+            "Full Restoration",
+            "Customization",
+            "Repair",
+            "Other"
+        ];
 
         // ===== AUTO-NOTIFICATION FUNCTIONS (Defined early so they're available) =====
         
@@ -941,9 +984,18 @@ Your feedback helps us improve and helps others discover our service! 🙏
             const btn = document.getElementById('save-order-btn');
             const items = [];
             document.querySelectorAll('.item-row').forEach(r => {
+                const typeSelect = r.querySelector('.item-type');
+                const typeOtherInput = r.querySelector('.item-type-other');
+                
+                // Use custom type if "Other" is selected and text is provided
+                let productType = typeSelect.value;
+                if(productType === 'Other' && typeOtherInput.value.trim()) {
+                    productType = typeOtherInput.value.trim();
+                }
+                
                 items.push({
                     brand: r.querySelector('.item-brand').value,
-                    type: r.querySelector('.item-type').value,
+                    type: productType,
                     service: r.querySelector('.item-service').value,
                     specs: r.querySelector('.item-specs').value,
                     price: parseFloat(r.querySelector('.item-price').value)||0
@@ -1128,12 +1180,12 @@ Your feedback helps us improve and helps others discover our service! 🙏
                 actions.innerHTML = `
                     <button class="btn btn-whatsapp" onclick="window.sendWhatsApp('${o.customer.phone}', 'Hello ${o.customer.name}, your order #${o.seqId} is ready!')">Notify</button>
                     <button class="btn btn-primary" onclick="window.initiateCompleteOrder('${o.id}')">Complete</button>
-                    <button class="btn btn-outline" onclick="window.undoStatus('${o.id}', 'Pending')" style="background:#FF9500; color:white; border:none;">↩️ Undo (Pending)</button>
+                    <button class="btn" onclick="window.undoStatus('${o.id}', 'Pending')" style="background:#FF9500; color:white; border:none; margin-left:auto; padding:10px 16px; font-size:14px;">↩️ Undo to Pending</button>
                 `;
             } else {
                 actions.innerHTML = `
                     <button class="btn btn-whatsapp" onclick="window.requestReview('${o.id}')">⭐ Ask Review</button>
-                    <button class="btn btn-outline" onclick="window.undoStatus('${o.id}', 'Ready')" style="background:#FF9500; color:white; border:none;">↩️ Undo (Ready)</button>
+                    <button class="btn" onclick="window.undoStatus('${o.id}', 'Ready')" style="background:#FF9500; color:white; border:none; margin-left:auto; padding:10px 16px; font-size:14px;">↩️ Undo to Ready</button>
                 `;
             }
             document.getElementById('modal-view-order').classList.add('open');
@@ -1263,18 +1315,88 @@ Your feedback helps us improve and helps others discover our service! 🙏
         window.openOrderModal = () => { document.getElementById('order-form').reset(); document.getElementById('order-items-container').innerHTML = ''; window.addOrderItem(); document.getElementById('modal-order').classList.add('open'); }
         window.addOrderItem = () => {
             const div = document.createElement('div'); div.className = 'item-row';
-            div.innerHTML = `<button type="button" class="remove-item" onclick="this.parentElement.remove(); window.calcBalance();">&times;</button><div class="flex-row"><input type="text" class="item-brand" placeholder="Brand"><select class="item-type"><option>Sneaker</option><option>Sport Shoe</option><option>Formals</option><option>Boots</option><option>Heels</option><option>Sandals</option><option>Bags</option><option>Jackets</option><option>Other</option></select></div><input type="text" class="item-service" placeholder="Select Services" readonly onclick="window.openServiceSelector(this)" style="cursor:pointer; background:white;"><div class="flex-row"><input type="text" class="item-specs" placeholder="Specs"><input type="number" class="item-price" placeholder="Price" oninput="window.calcBalance()"></div>`;
+            div.innerHTML = `<button type="button" class="remove-item" onclick="this.parentElement.remove(); window.calcBalance();">&times;</button><div class="flex-row"><input type="text" class="item-brand" placeholder="Brand"><select class="item-type" onchange="window.handleProductTypeChange(this)"><option>Sneaker</option><option>Sport Shoe</option><option>Formal Shoe</option><option>Boots</option><option>Heels</option><option>Sandals</option><option>Loafers</option><option>Slippers</option><option>Bags</option><option>Handbag</option><option>Backpack</option><option>Jacket</option><option>Leather Jacket</option><option>Suede Shoes</option><option>Canvas Shoes</option><option>Running Shoes</option><option>Trekking Shoes</option><option>School Shoes</option><option>Safety Shoes</option><option>Other</option></select><input type="text" class="item-type-other" placeholder="Specify product type" style="display:none; margin-top:5px;"></div><input type="text" class="item-service" placeholder="Select Services" readonly onclick="window.openServiceSelector(this)" style="cursor:pointer; background:white;"><div class="flex-row"><input type="text" class="item-specs" placeholder="Specs"><input type="number" class="item-price" placeholder="Price" oninput="window.calcBalance()"></div>`;
             document.getElementById('order-items-container').appendChild(div);
         }
+        
+        // Handle "Other" selection for product type
+        window.handleProductTypeChange = (selectEl) => {
+            const itemRow = selectEl.closest('.item-row');
+            const otherInput = itemRow.querySelector('.item-type-other');
+            
+            if(selectEl.value === 'Other') {
+                otherInput.style.display = 'block';
+                otherInput.focus();
+            } else {
+                otherInput.style.display = 'none';
+                otherInput.value = '';
+            }
+        };
         window.openServiceSelector = (el) => {
-            currentServiceInput = el; const container = document.getElementById('service-options-container'); container.innerHTML = ''; const current = el.value.split(', ');
-            ALL_SERVICES.forEach(s => { container.innerHTML += `<label class="service-option-label"><input type="checkbox" value="${s}" ${current.includes(s)?'checked':''}><span class="service-text">${s}</span><div class="service-tick"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div></label>`; });
+            currentServiceInput = el; 
+            const container = document.getElementById('service-options-container'); 
+            container.innerHTML = ''; 
+            const current = el.value.split(', ').filter(v => v);
+            
+            // Check if there's a custom "Other" value
+            const otherBox = document.getElementById('other-service-box');
+            const otherInput = document.getElementById('other-service-input');
+            const hasOther = current.find(s => !ALL_SERVICES.includes(s));
+            
+            if(hasOther) {
+                otherInput.value = hasOther;
+                otherBox.style.display = 'block';
+            } else {
+                otherInput.value = '';
+                otherBox.style.display = 'none';
+            }
+            
+            ALL_SERVICES.forEach(s => { 
+                const isChecked = s === 'Other' ? hasOther || current.includes('Other') : current.includes(s);
+                container.innerHTML += `<label class="service-option-label"><input type="checkbox" value="${s}" ${isChecked?'checked':''} onchange="window.handleServiceCheckbox(this)"><span class="service-text">${s}</span><div class="service-tick"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div></label>`; 
+            });
+            
             document.getElementById('modal-service-selector').classList.add('open');
-        }
+        };
+        
+        // Handle checkbox changes, especially for "Other"
+        window.handleServiceCheckbox = (checkbox) => {
+            const otherBox = document.getElementById('other-service-box');
+            const otherInput = document.getElementById('other-service-input');
+            
+            if(checkbox.value === 'Other') {
+                if(checkbox.checked) {
+                    otherBox.style.display = 'block';
+                    otherInput.focus();
+                } else {
+                    otherBox.style.display = 'none';
+                    otherInput.value = '';
+                }
+            }
+        };
+        
         window.saveServiceSelection = () => {
-            const vals = Array.from(document.querySelectorAll('#service-options-container input:checked')).map(c => c.value);
-            if(currentServiceInput) currentServiceInput.value = vals.join(', '); window.closeModal('modal-service-selector');
-        }
+            const checkboxes = document.querySelectorAll('#service-options-container input:checked');
+            const vals = [];
+            const otherInput = document.getElementById('other-service-input');
+            
+            checkboxes.forEach(c => {
+                if(c.value === 'Other') {
+                    // If "Other" is checked and there's custom text, use that
+                    const customService = otherInput.value.trim();
+                    if(customService) {
+                        vals.push(customService);
+                    } else {
+                        vals.push('Other');
+                    }
+                } else {
+                    vals.push(c.value);
+                }
+            });
+            
+            if(currentServiceInput) currentServiceInput.value = vals.join(', '); 
+            window.closeModal('modal-service-selector');
+        };
         window.calcBalance = () => {
             let total = 0; 
             document.querySelectorAll('.item-price').forEach(i => total += (parseFloat(i.value)||0)); 
@@ -1481,17 +1603,29 @@ Your feedback helps us improve and helps others discover our service! 🙏
                 <button type="button" class="remove-item" onclick="this.parentElement.remove(); window.calcEditBalance();">&times;</button>
                 <div class="flex-row">
                     <input type="text" class="edit-item-brand" placeholder="Brand">
-                    <select class="edit-item-type">
+                    <select class="edit-item-type" onchange="window.handleEditProductTypeChange(this)">
                         <option>Sneaker</option>
                         <option>Sport Shoe</option>
-                        <option>Formals</option>
+                        <option>Formal Shoe</option>
                         <option>Boots</option>
                         <option>Heels</option>
                         <option>Sandals</option>
+                        <option>Loafers</option>
+                        <option>Slippers</option>
                         <option>Bags</option>
-                        <option>Jackets</option>
+                        <option>Handbag</option>
+                        <option>Backpack</option>
+                        <option>Jacket</option>
+                        <option>Leather Jacket</option>
+                        <option>Suede Shoes</option>
+                        <option>Canvas Shoes</option>
+                        <option>Running Shoes</option>
+                        <option>Trekking Shoes</option>
+                        <option>School Shoes</option>
+                        <option>Safety Shoes</option>
                         <option>Other</option>
                     </select>
+                    <input type="text" class="edit-item-type-other" placeholder="Specify product type" style="display:none; margin-top:5px;">
                 </div>
                 <input type="text" class="edit-item-service" placeholder="Select Services" readonly onclick="window.openEditServiceSelector(this)" style="cursor:pointer; background:white;">
                 <div class="flex-row">
@@ -1500,6 +1634,20 @@ Your feedback helps us improve and helps others discover our service! 🙏
                 </div>
             `;
             document.getElementById('edit-order-items-container').appendChild(div);
+        };
+        
+        // Handle "Other" selection for edit product type
+        window.handleEditProductTypeChange = (selectEl) => {
+            const itemRow = selectEl.closest('.item-row');
+            const otherInput = itemRow.querySelector('.edit-item-type-other');
+            
+            if(selectEl.value === 'Other') {
+                otherInput.style.display = 'block';
+                otherInput.focus();
+            } else {
+                otherInput.style.display = 'none';
+                otherInput.value = '';
+            }
         };
         
         window.openEditServiceSelector = (el) => {
