@@ -309,6 +309,12 @@
                 <p>Profit (Net): <b id="rep-profit" style="color:var(--success)">0</b></p>
             </div>
             
+            <div class="card" style="background:#FFF3CD; border-left: 4px solid #FF9500;">
+                <h3 style="color:#856404;">⚠️ Due Date Reminders</h3>
+                <p style="font-size:14px; color:#666;">Check which orders are due tomorrow</p>
+                <button class="btn btn-primary" onclick="window.checkDueDateReminders()">Check Tomorrow's Orders</button>
+            </div>
+            
             <div class="card">
                 <h3>System Status</h3>
                 <p style="font-size:12px; color:#666;">Data is securely stored in Firebase.</p>
@@ -847,7 +853,12 @@
 
                 clearTimeout(timeout);
                 window.closeModal('modal-order');
-                window.switchView('orders'); 
+                window.switchView('orders');
+                
+                // AUTO-SEND BILL VIA WHATSAPP
+                setTimeout(() => {
+                    window.autoSendBillAfterCreation(newOrderId);
+                }, 1000); 
 
             } catch(e) {
                 clearTimeout(timeout);
@@ -948,6 +959,13 @@
             try {
                 await db.collection("orders").doc(id).update( updates);
                 if(status !== 'Completed') window.closeModal('modal-view-order');
+                
+                // AUTO-NOTIFY CUSTOMER WHEN READY
+                if(status === 'Ready') {
+                    setTimeout(() => {
+                        window.notifyCustomerOrderReady(id);
+                    }, 500);
+                }
             } catch(e) { alert("Error updating: " + e.message); }
         };
 
@@ -1618,7 +1636,7 @@
             // ===== BILLING SUMMARY =====
             const summaryBoxY = y;
             const summaryBoxHeight = 420;
-            const summaryBoxWidth = 550;
+            const summaryBoxWidth = 700; // Increased width to prevent overlap
             const summaryBoxX = width - 60 - summaryBoxWidth;
             
             ctx.fillStyle = "#FFF5F5";
@@ -1771,6 +1789,119 @@
             }
         };
 
+        // ===== AUTO-NOTIFICATION SYSTEM =====
+        
+        // Function to send WhatsApp message
+        function sendAutoWhatsApp(phone, message) {
+            const cleanPhone = phone.replace(/\D/g, '');
+            const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+        
+        // Auto-send bill via WhatsApp after order creation
+        window.autoSendBillAfterCreation = async (orderId) => {
+            try {
+                const order = window.orders.find(o => o.id === orderId);
+                if (!order) return;
+                
+                // Generate bill first
+                await window.shareBill(orderId);
+                
+                // Wait a moment for bill to download, then prompt for WhatsApp
+                setTimeout(() => {
+                    const message = `Hello ${order.customer.name}! 
+                    
+Your order #${order.seqId} has been received at Mr Boot Shoe Laundry & Repair.
+
+📋 Order Details:
+${order.items.map(i => `• ${i.brand || ''} ${i.type}`.trim()).join('\n')}
+
+💰 Total Amount: ₹${order.financials.total}
+💵 Advance Paid: ₹${order.financials.advance}
+💳 Balance: ₹${order.financials.balance}
+
+📅 Expected Delivery: ${order.deliveryDate || 'TBD'}
+
+Your bill has been generated. We'll notify you when your order is ready!
+
+Thank you for choosing us! 🙏`;
+                    
+                    if (confirm("Send bill and order confirmation to customer via WhatsApp?")) {
+                        sendAutoWhatsApp(order.customer.phone, message);
+                    }
+                }, 2000);
+            } catch(e) {
+                console.error("Auto-send error:", e);
+            }
+        };
+        
+        // Auto-notify when order status changes to "Ready"
+        window.notifyCustomerOrderReady = (orderId) => {
+            const order = window.orders.find(o => o.id === orderId);
+            if (!order) return;
+            
+            const message = `🎉 Great News ${order.customer.name}!
+
+Your order #${order.seqId} is READY for pickup! ✨
+
+📋 Items:
+${order.items.map(i => `• ${i.brand || ''} ${i.type}`.trim()).join('\n')}
+
+💰 Balance to Pay: ₹${order.financials.balance}
+
+📍 Please visit us at your convenience or we can arrange delivery.
+
+📞 Contact: +91 9028983659
+
+Thank you! 🙏
+- Mr Boot Shoe Laundry & Repair`;
+            
+            if (confirm("✅ Order marked as Ready!\n\nSend pickup notification to customer?")) {
+                sendAutoWhatsApp(order.customer.phone, message);
+            }
+        };
+        
+        // Check for orders due tomorrow and send admin reminders
+        window.checkDueDateReminders = () => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            
+            const dueOrders = window.orders.filter(o => 
+                o.deliveryDate === tomorrowStr && 
+                o.status !== 'Completed'
+            );
+            
+            if (dueOrders.length > 0) {
+                const ordersList = dueOrders.map(o => 
+                    `#${o.seqId} - ${o.customer.name} (${o.customer.phone})`
+                ).join('\n');
+                
+                alert(`⚠️ REMINDER: ${dueOrders.length} order(s) due TOMORROW!\n\n${ordersList}\n\nMake sure they're ready!`);
+                
+                // Show in a card on dashboard
+                const alertDiv = document.getElementById('delivery-alert');
+                if (alertDiv) {
+                    alertDiv.classList.remove('hidden');
+                    alertDiv.style.background = '#FFF3CD';
+                    alertDiv.style.color = '#856404';
+                    alertDiv.innerHTML = `⚠️ <b>${dueOrders.length} order(s) due TOMORROW!</b> Check Orders tab.`;
+                }
+            }
+        };
+        
+        // Auto-check reminders when app loads and every hour
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                window.checkDueDateReminders();
+            }, 3000); // Check 3 seconds after load
+            
+            // Check every hour
+            setInterval(() => {
+                window.checkDueDateReminders();
+            }, 3600000); // 1 hour in milliseconds
+        });
+
         // Stub functions for features not yet implemented
         window.toggleSelectMode = () => {
             window.isSelectMode = !window.isSelectMode;
@@ -1799,6 +1930,7 @@
                 for(const id of window.selectedOrders) {
                     await db.collection("orders").doc(id).update( { status: 'Ready' });
                 }
+                alert(`✅ ${window.selectedOrders.size} orders marked as Ready!\n\nYou can now notify customers individually from the Orders list.`);
             } else if(action === 'Delete') {
                 if(!confirm(`Delete ${window.selectedOrders.size} orders permanently?`)) return;
                 for(const id of window.selectedOrders) {
