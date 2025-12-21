@@ -1,0 +1,26 @@
+{
+  "name": "Mr Boot Shoe Laundry & Repair",
+  "short_name": "Mr Boot",
+  "description": "Complete inventory and order management system for Mr Boot Shoe Laundry",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F2F4F8",
+  "theme_color": "#4E342E",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "screenshots": [
+    {
+      "src": "https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png",
+      "sizes": "540x720",
+      "type": "image/png"
+    }
+  ]
+}
