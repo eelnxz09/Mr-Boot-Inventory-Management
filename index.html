@@ -716,6 +716,33 @@ Thank you for choosing us! 🙏`;
                 console.log('No orders due tomorrow');
             }
         };
+        
+        // Request Google Review with proper message
+        window.requestReview = (orderId) => {
+            const order = window.orders.find(o => o.id === orderId);
+            if (!order) {
+                console.error('Order not found:', orderId);
+                return;
+            }
+            
+            const message = `Hello ${order.customer.name}! 👋
+
+Thank you for trusting Mr Boot with your shoes! 
+
+We hope you're happy with our service. Would you mind sharing your experience?
+
+⭐ Please leave us a Google review:
+${REVIEW_LINK}
+
+Your feedback helps us improve and helps others discover our service! 🙏
+
+- Team Mr Boot
+📞 +91 9028983659`;
+            
+            if (confirm("Send review request to customer via WhatsApp?")) {
+                sendAutoWhatsApp(order.customer.phone, message);
+            }
+        };
 
         // --- Loader ---
         const showLoading = (msg) => {
@@ -1100,7 +1127,7 @@ Thank you for choosing us! 🙏`;
             } else if (o.status === 'Ready') {
                 actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.sendWhatsApp('${o.customer.phone}', 'Hello ${o.customer.name}, your order #${o.seqId} is ready!')">Notify</button><button class="btn btn-primary" onclick="window.initiateCompleteOrder('${o.id}')">Complete</button>`;
             } else {
-                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.sendWhatsApp('${o.customer.phone}', '${REVIEW_LINK}')">Ask Review</button>`;
+                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.requestReview('${o.id}')">⭐ Ask Review</button>`;
             }
             document.getElementById('modal-view-order').classList.add('open');
         };
@@ -2017,6 +2044,19 @@ Thank you for choosing us! 🙏`;
             console.log('✅ PWA installed successfully');
             alert('✅ Mr Boot app installed! Access it from your home screen.');
         });
+        
+        // ===== SERVICE WORKER REGISTRATION =====
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then((registration) => {
+                        console.log('✅ Service Worker registered:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('❌ Service Worker registration failed:', error);
+                    });
+            });
+        }
     </script>
 </body>
 </html>
