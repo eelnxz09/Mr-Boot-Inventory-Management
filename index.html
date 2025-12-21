@@ -518,9 +518,13 @@
         window.saveGalleryItem = () => {};
     </script>
 
-    <script type="module">
-        console.log('🚀 App starting...');
-        alert('Module script is loading! Check console (F12)');
+    <!-- Firebase Compat Libraries (No Modules Required) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+
+    <script>
+        console.log('🚀 App starting with compat libraries...');
         
         // Enhanced error logging
         window.addEventListener('error', (e) => {
@@ -533,13 +537,7 @@
             document.body.innerHTML += `<div style="position:fixed;top:50px;left:0;right:0;background:orange;color:white;padding:20px;z-index:99999;">PROMISE ERROR: ${e.reason}<br>Check console (F12)</div>`;
         });
         
-        console.log('📦 Importing Firebase modules...');
-        
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, query, orderBy, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        console.log('✅ Firebase modules imported successfully');
+        console.log('📦 Initializing Firebase...');
 
         // FIREBASE CONFIG
         console.log('⚙️ Initializing Firebase...');
@@ -553,9 +551,10 @@
             measurementId: "G-3ZXFKPXJPQ"
         };
         
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        // Initialize Firebase with compat API
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
         
         console.log('✅ Firebase initialized successfully');
         console.log('🔐 Auth object:', auth);
@@ -594,7 +593,7 @@
             if(!email || !pass) return alert("Enter Email and Password");
             showLoading("Logging in...");
             try { 
-                await signInWithEmailAndPassword(auth, email, pass);
+                await auth.signInWithEmailAndPassword(email, pass);
             } 
             catch(e) { 
                 hideLoading();
@@ -608,7 +607,7 @@
             if(!email || !pass) return alert("Enter Email and Password to create account");
             showLoading("Creating Account...");
             try {
-                await createUserWithEmailAndPassword(auth, email, pass);
+                await auth.createUserWithEmailAndPassword(email, pass);
                 alert("Account Created! You are now logged in.");
             } catch(e) {
                 hideLoading();
@@ -616,16 +615,16 @@
             }
         };
 
-        window.logout = () => signOut(auth);
+        window.logout = () => auth.signOut();
         
         window.testConnection = async () => {
             showLoading("Testing Write Access...");
             try {
-                const docRef = await addDoc(collection(db, "test_connection"), {
+                const docRef = await db.collection("test_connection").add({
                     test: true,
                     timestamp: Date.now()
                 });
-                await deleteDoc(doc(db, "test_connection", docRef.id));
+                await db.collection("test_connection").doc(docRef.id).delete();
                 hideLoading();
                 alert("Connection Successful! Database is Writable.");
             } catch(e) {
@@ -634,7 +633,7 @@
             }
         };
 
-        onAuthStateChanged(auth, user => { 
+        auth.onAuthStateChanged(user => { 
             console.log('🔄 Auth state changed:', user ? user.email : 'No user');
             if(user) { 
                 console.log('✅ User logged in:', user.email);
@@ -665,7 +664,7 @@
         // --- Core ---
         function initListeners(onFirstLoad) {
             let firstLoad = true;
-            onSnapshot(collection(db, "orders"), (snap) => {
+            db.collection("orders").onSnapshot((snap) => {
                 window.orders = [];
                 snap.forEach(doc => window.orders.push({id: doc.id, ...doc.data()}));
                 window.orders.sort((a,b) => b.timestamp - a.timestamp);
@@ -689,14 +688,14 @@
                 if(error.code === 'permission-denied') alert("Database Permission Denied. Please enable Test Mode rules in Firebase Console.");
             });
 
-            onSnapshot(collection(db, "inventory"), (snap) => {
+            db.collection("inventory").onSnapshot((snap) => {
                 window.inventory = [];
                 snap.forEach(doc => window.inventory.push({id: doc.id, ...doc.data()}));
                 window.renderInventory();
                 window.populateStockDropdown();
             });
 
-            onSnapshot(collection(db, "gallery"), (snap) => {
+            db.collection("gallery").onSnapshot((snap) => {
                 window.gallery = [];
                 snap.forEach(doc => window.gallery.push({id: doc.id, ...doc.data()}));
                 window.renderGallery();
@@ -742,7 +741,7 @@
                     if (btn) btn.innerText = `Uploading Photo ${i+1}/${files.length}...`;
                     const base64 = await compressImage(files[i]);
                     // Use STRING ID as link between collections
-                    await addDoc(collection(db, "images"), { orderId: String(orderId), type, blob: base64, timestamp: Date.now() });
+                    await db.collection("images").add( { orderId: String(orderId), type, blob: base64, timestamp: Date.now() });
                 } catch (e) { console.error(e); }
             }
         };
@@ -827,7 +826,7 @@
                     stockUsed: stockId || null
                 };
 
-                const docRef = await addDoc(collection(db, "orders"), orderData);
+                const docRef = await db.collection("orders").add( orderData);
                 const newOrderId = docRef.id;
 
                 btn.innerText = "Uploading Photos...";
@@ -842,7 +841,7 @@
                     const stockItem = window.inventory.find(i => i.id === stockId);
                     if(stockItem) {
                         const newQty = Math.max(0, stockItem.qty - 1);
-                        await updateDoc(doc(db, "inventory", stockId), { qty: newQty });
+                        await db.collection("inventory").doc(stockId).update( { qty: newQty });
                     }
                 }
 
@@ -914,8 +913,8 @@
             content.innerHTML = `<div style="text-align:center; margin-bottom:16px;"><div id="view-order-main-photo" style="width:100%; height:200px; background:#f0f0f0; border-radius:10px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; overflow:hidden;">Loading Photo...</div><h2>${o.customer.name}</h2><a href="tel:${o.customer.phone}" style="color:var(--info);">${o.customer.phone}</a></div><div class="card" style="background:#fafafa;">${itemsHtml}${addonHtml}</div><div style="display:flex; justify-content:space-between; margin-top:16px;"><span>Total: <b>₹${o.financials.total}</b></span><span>Balance: <b style="color:${o.financials.balance>0?'red':'green'}">₹${o.financials.balance}</b></span></div><div id="view-order-intake-images" class="img-grid" style="margin-top:16px;"></div>${o.status === 'Completed' ? `<h4 style="margin-top:10px; color:green;">Proof</h4><div id="view-order-proof-images" class="img-grid"></div>` : ''}`;
 
             // Load Images (Cloud) - Using STRING ID match
-            const q = query(collection(db, "images"), where("orderId", "==", String(id)));
-            getDocs(q).then(snap => {
+            const q = db.collection("images").where("orderId", "==", String(id));
+            q.get().then(snap => {
                  const mainC = document.getElementById('view-order-main-photo');
                  const intakeC = document.getElementById('view-order-intake-images');
                  const proofC = document.getElementById('view-order-proof-images');
@@ -947,7 +946,7 @@
             const updates = { status };
             if(status === 'Completed') updates['financials.balance'] = 0;
             try {
-                await updateDoc(doc(db, "orders", id), updates);
+                await db.collection("orders").doc(id).update( updates);
                 if(status !== 'Completed') window.closeModal('modal-view-order');
             } catch(e) { alert("Error updating: " + e.message); }
         };
@@ -972,7 +971,7 @@
         window.deleteOrder = async () => {
             if(!confirm("Delete permanently?")) return;
             try {
-                await deleteDoc(doc(db, "orders", viewingOrderId));
+                await db.collection("orders").doc(viewingOrderId).delete();
                 window.closeModal('modal-view-order');
             } catch(e) { alert("Error deleting: " + e.message); }
         }
@@ -980,7 +979,7 @@
         window.deleteInventoryItem = async (id) => {
             if(!confirm("Delete this inventory item?")) return;
             try {
-                await deleteDoc(doc(db, "inventory", id));
+                await db.collection("inventory").doc(id).delete();
             } catch(e) { alert("Error deleting: " + e.message); }
         };
 
@@ -992,7 +991,7 @@
             showLoading("Uploading to Gallery...");
             try {
                 const base64 = await compressImage(file);
-                await addDoc(collection(db, "gallery"), { caption, blob: base64, timestamp: Date.now() });
+                await db.collection("gallery").add( { caption, blob: base64, timestamp: Date.now() });
                 window.closeModal('modal-gallery-upload');
             } catch(e) { alert("Error: " + e.message); }
             finally { hideLoading(); }
@@ -1011,7 +1010,7 @@
         
         window.deleteGalleryItem = async (id) => {
             if(!confirm("Remove from gallery?")) return;
-            await deleteDoc(doc(db, "gallery", id));
+            await db.collection("gallery").doc(id).delete();
         };
 
         window.switchView = (id, el) => {
@@ -1065,7 +1064,7 @@
         window.saveInventory = async (e) => {
             e.preventDefault();
             try {
-                await addDoc(collection(db, "inventory"), { name: document.getElementById('inv-name').value, brand: document.getElementById('inv-brand').value, qty: document.getElementById('inv-qty').value, price: document.getElementById('inv-price').value }); 
+                await db.collection("inventory").add( { name: document.getElementById('inv-name').value, brand: document.getElementById('inv-brand').value, qty: document.getElementById('inv-qty').value, price: document.getElementById('inv-price').value }); 
                 window.closeModal('modal-inventory');
             } catch(e) { alert("Error: " + e.message); }
         }
@@ -1156,8 +1155,8 @@
                  el.appendChild(div);
                  
                  // Fetch images for history
-                 const q = query(collection(db, "images"), where("orderId", "==", o.id));
-                 getDocs(q).then(snap => {
+                 const q = db.collection("images").where("orderId", "==", o.id);
+                 q.get().then(snap => {
                      const inC = document.getElementById(`hist-intake-${o.id}`);
                      const prC = document.getElementById(`hist-proof-${o.id}`);
                      snap.forEach(doc => {
@@ -1318,7 +1317,7 @@
                     'financials.mode': document.getElementById('edit-ord-paymode').value
                 };
                 
-                await updateDoc(doc(db, "orders", currentEditOrderId), updates);
+                await db.collection("orders").doc(currentEditOrderId).update( updates);
                 
                 window.closeModal('modal-edit-order');
                 alert("Order updated successfully!");
@@ -1346,7 +1345,7 @@
                 const canvas = document.getElementById('billCanvas');
                 const ctx = canvas.getContext('2d');
                 
-                // Polyfill for roundRect if not supported
+                // Polyfill for roundRect
                 if (!ctx.roundRect) {
                     ctx.roundRect = function(x, y, width, height, radius) {
                         this.beginPath();
@@ -1363,9 +1362,15 @@
                     };
                 }
             
-            // Set canvas size to match invoice design (portrait orientation)
+            // Calculate dynamic height based on items
+            const baseHeight = 1400; // Base height without items
+            const itemCount = (o.items ? o.items.length : 0) + (o.financials.addonPrice > 0 ? 1 : 0);
+            const itemHeight = 120; // Height per item (with brand/specs)
+            const summaryHeight = 450; // Billing summary box
+            const footerHeight = 300; // Footer with T&C
+            
             const width = 1080;
-            const height = 1920;
+            const height = baseHeight + (itemCount * itemHeight) + summaryHeight + footerHeight;
             canvas.width = width;
             canvas.height = height;
             
@@ -1375,13 +1380,13 @@
             
             let y = 80;
             
-            // ===== HEADER SECTION =====
+            // ===== HEADER =====
             ctx.fillStyle = "#000000";
             ctx.font = "bold 56px Arial";
             ctx.textAlign = "left";
             ctx.fillText("Mr Boot Shoe Laundry & Repair", 60, y);
             
-            // Logo on right side
+            // Logo
             const logoImg = document.getElementById('logo-img-res');
             try {
                 if(logoImg.complete && logoImg.naturalWidth > 0) {
@@ -1391,38 +1396,31 @@
             } catch(e) { console.log("Logo error", e); }
             
             y += 80;
-            
-            // "Service Invoice" heading
             ctx.font = "48px Arial";
             ctx.fillText("Service Invoice", 60, y);
             
             y += 80;
-            
-            // Order number
             ctx.font = "bold 42px Arial";
             ctx.fillText(`Order number: #${o.seqId}`, 60, y);
             
             y += 80;
             
-            // ===== INFO BOXES (Due Date, Current Date, Payment Status) =====
+            // ===== INFO BOXES =====
             const boxY = y;
             const boxHeight = 120;
             const boxWidth = (width - 160) / 3;
             
-            // Box backgrounds
             ctx.fillStyle = "#F5F5F5";
             ctx.fillRect(60, boxY, boxWidth, boxHeight);
             ctx.fillRect(60 + boxWidth + 20, boxY, boxWidth, boxHeight);
             ctx.fillRect(60 + (boxWidth + 20) * 2, boxY, boxWidth, boxHeight);
             
-            // Box borders
             ctx.strokeStyle = "#DDDDDD";
             ctx.lineWidth = 2;
             ctx.strokeRect(60, boxY, boxWidth, boxHeight);
             ctx.strokeRect(60 + boxWidth + 20, boxY, boxWidth, boxHeight);
             ctx.strokeRect(60 + (boxWidth + 20) * 2, boxY, boxWidth, boxHeight);
             
-            // Box text
             ctx.fillStyle = "#000000";
             ctx.font = "28px Arial";
             ctx.textAlign = "center";
@@ -1455,7 +1453,6 @@
             const photoHeight = 500;
             const photoWidth = width - 120;
             
-            // Photo background
             ctx.fillStyle = "#F5F5F5";
             if (ctx.roundRect) {
                 ctx.roundRect(60, photoY, photoWidth, photoHeight, 20);
@@ -1464,10 +1461,10 @@
                 ctx.fillRect(60, photoY, photoWidth, photoHeight);
             }
             
-            // Try to load main photo
+            // Load photo
             try {
-                const q = query(collection(db, "images"), where("orderId", "==", String(id)));
-                const snap = await getDocs(q);
+                const q = db.collection("images").where("orderId", "==", String(id));
+                const snap = await q.get();
                 let mainBlob = null;
                 
                 snap.forEach(doc => {
@@ -1481,7 +1478,6 @@
                     imgObj.src = mainBlob;
                     await new Promise(r => imgObj.onload = r);
                     
-                    // Calculate aspect ratio fit
                     const imgAspect = imgObj.width / imgObj.height;
                     const boxAspect = photoWidth / photoHeight;
                     let drawWidth, drawHeight, drawX, drawY;
@@ -1519,7 +1515,6 @@
             ctx.fillStyle = "#000000";
             ctx.textAlign = "left";
             
-            // Table header
             const tableX = 60;
             const colWidths = [450, 150, 150, 200];
             
@@ -1537,7 +1532,6 @@
             
             y += 60;
             
-            // Draw horizontal line
             ctx.strokeStyle = "#DDDDDD";
             ctx.lineWidth = 2;
             ctx.beginPath();
@@ -1547,83 +1541,86 @@
             
             y += 30;
             
-            // Table rows - items
-            ctx.font = "32px Arial";
+            // ===== ITEMS WITH BRAND/SPECS (Like Image 2) =====
             if(o.items && o.items.length > 0) {
                 o.items.forEach(item => {
-                    const rowHeight = 80;
-                    
-                    // Item name with service
                     ctx.fillStyle = "#000000";
-                    const itemText = `${item.type} (${item.service.split(',')[0]})`;
-                    ctx.fillText(itemText, tableX + 20, y + 25);
+                    ctx.font = "bold 34px Arial";
                     
-                    // Rate
-                    ctx.fillText(`₹${item.price}`, tableX + colWidths[0], y + 25);
+                    // Brand + Type (e.g., "Nike Sneaker")
+                    const mainText = `${item.brand || ''} ${item.type}`.trim();
+                    ctx.fillText(mainText, tableX + 20, y + 35);
                     
-                    // Quantity (always 1 for now)
-                    ctx.fillText("1", tableX + colWidths[0] + colWidths[1] + 40, y + 25);
-                    
-                    // Amount
+                    // Price aligned to right
                     ctx.textAlign = "right";
-                    ctx.fillText(`₹${item.price}`, width - 80, y + 25);
+                    ctx.fillText(`₹${item.price}`, width - 80, y + 35);
                     ctx.textAlign = "left";
                     
-                    y += rowHeight;
+                    y += 50;
                     
-                    // Draw line
+                    // Service details (italic, smaller)
+                    ctx.font = "italic 28px Arial";
+                    ctx.fillStyle = "#666666";
+                    ctx.fillText(item.service || '', tableX + 20, y + 20);
+                    
+                    y += 50;
+                    
+                    // Specs if present (smaller, gray)
+                    if(item.specs && item.specs.trim()) {
+                        ctx.font = "26px Arial";
+                        ctx.fillStyle = "#888888";
+                        ctx.fillText(item.specs, tableX + 20, y + 15);
+                        y += 40;
+                    }
+                    
+                    y += 20;
+                    
+                    // Divider line
                     ctx.strokeStyle = "#EEEEEE";
                     ctx.lineWidth = 1;
                     ctx.beginPath();
                     ctx.moveTo(tableX, y);
                     ctx.lineTo(width - 60, y);
                     ctx.stroke();
+                    
+                    y += 10;
                 });
             }
             
-            // Add Add-on item if present
+            // ===== ADD-ON (if present) =====
             if(o.financials.addonPrice && o.financials.addonPrice > 0) {
-                const rowHeight = 80;
+                y += 20;
                 
                 ctx.fillStyle = "#007AFF";
-                ctx.font = "bold 32px Arial";
+                ctx.font = "bold 34px Arial";
                 const addonText = `Add-on: ${o.financials.addonName || 'Item'}`;
-                ctx.fillText(addonText, tableX + 20, y + 25);
+                ctx.fillText(addonText, tableX + 20, y + 35);
                 
-                ctx.fillStyle = "#000000";
-                ctx.font = "32px Arial";
-                
-                // Rate
-                ctx.fillText(`₹${o.financials.addonPrice}`, tableX + colWidths[0], y + 25);
-                
-                // Quantity
-                ctx.fillText("1", tableX + colWidths[0] + colWidths[1] + 40, y + 25);
-                
-                // Amount
                 ctx.textAlign = "right";
-                ctx.fillText(`₹${o.financials.addonPrice}`, width - 80, y + 25);
+                ctx.fillStyle = "#000000";
+                ctx.fillText(`₹${o.financials.addonPrice}`, width - 80, y + 35);
                 ctx.textAlign = "left";
                 
-                y += rowHeight;
+                y += 60;
                 
-                // Draw line
                 ctx.strokeStyle = "#EEEEEE";
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(tableX, y);
                 ctx.lineTo(width - 60, y);
                 ctx.stroke();
+                
+                y += 10;
             }
             
-            y += 40;
+            y += 60;
             
-            // ===== BILLING SUMMARY BOX =====
+            // ===== BILLING SUMMARY =====
             const summaryBoxY = y;
-            const summaryBoxHeight = 380; // Increased height for add-on and delivery lines
-            const summaryBoxWidth = 500;
+            const summaryBoxHeight = 420;
+            const summaryBoxWidth = 550;
             const summaryBoxX = width - 60 - summaryBoxWidth;
             
-            // Box background
             ctx.fillStyle = "#FFF5F5";
             ctx.strokeStyle = "#FF3B30";
             ctx.lineWidth = 3;
@@ -1636,7 +1633,6 @@
                 ctx.strokeRect(summaryBoxX, summaryBoxY, summaryBoxWidth, summaryBoxHeight);
             }
             
-            // Box content
             let summaryY = summaryBoxY + 50;
             
             ctx.fillStyle = "#000000";
@@ -1644,15 +1640,14 @@
             ctx.textAlign = "left";
             ctx.fillText("Billing Summary:", summaryBoxX + 30, summaryY);
             
-            summaryY += 50;
+            summaryY += 55;
             ctx.font = "32px Arial";
             
-            // Subtotal (Services only)
+            // Services
             ctx.fillText("Services:", summaryBoxX + 30, summaryY);
             ctx.textAlign = "right";
             ctx.fillText(`₹${o.financials.itemTotal || o.financials.total}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
-            
-            summaryY += 45;
+            summaryY += 50;
             ctx.textAlign = "left";
             
             // Add-on (if present)
@@ -1660,91 +1655,88 @@
                 ctx.fillText(`Add-on (${o.financials.addonName || 'Item'}):`, summaryBoxX + 30, summaryY);
                 ctx.textAlign = "right";
                 ctx.fillText(`₹${o.financials.addonPrice}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
-                summaryY += 45;
+                summaryY += 50;
                 ctx.textAlign = "left";
             }
             
-            // Delivery Charge (if present)
+            // Delivery (if present)
             if(o.financials.deliveryCharge && o.financials.deliveryCharge > 0) {
                 ctx.fillText("Delivery:", summaryBoxX + 30, summaryY);
                 ctx.textAlign = "right";
                 ctx.fillText(`₹${o.financials.deliveryCharge}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
-                summaryY += 45;
+                summaryY += 50;
                 ctx.textAlign = "left";
             }
             
-            // Draw separator line
+            // Separator
             ctx.strokeStyle = "#DDDDDD";
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(summaryBoxX + 30, summaryY);
             ctx.lineTo(summaryBoxX + summaryBoxWidth - 30, summaryY);
             ctx.stroke();
+            summaryY += 45;
             
-            summaryY += 40;
-            
-            // Subtotal line
+            // Subtotal
             ctx.fillText("Subtotal:", summaryBoxX + 30, summaryY);
             ctx.textAlign = "right";
             ctx.fillText(`₹${o.financials.total}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
-            
-            summaryY += 45;
+            summaryY += 50;
             ctx.textAlign = "left";
             
-            // Advance Paid
+            // Advance
             ctx.fillText("Advance Paid:", summaryBoxX + 30, summaryY);
             ctx.textAlign = "right";
             ctx.fillText(`₹${o.financials.advance}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
-            
             summaryY += 20;
             
-            // Draw separator line
+            // Separator
             ctx.strokeStyle = "#DDDDDD";
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(summaryBoxX + 30, summaryY);
             ctx.lineTo(summaryBoxX + summaryBoxWidth - 30, summaryY);
             ctx.stroke();
-            
-            summaryY += 40;
+            summaryY += 45;
             ctx.textAlign = "left";
             
-            // Balance Amount
+            // Balance
             ctx.fillText("Balance Amount:", summaryBoxX + 30, summaryY);
             ctx.textAlign = "right";
             ctx.fillStyle = "#FF3B30";
+            ctx.font = "bold 38px Arial";
             ctx.fillText(`₹${o.financials.balance}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
-            
-            // Draw separator line
             summaryY += 20;
+            
+            // Separator
             ctx.strokeStyle = "#DDDDDD";
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(summaryBoxX + 30, summaryY);
             ctx.lineTo(summaryBoxX + summaryBoxWidth - 30, summaryY);
             ctx.stroke();
-            
-            summaryY += 35;
+            summaryY += 40;
             ctx.textAlign = "left";
             
-            // Total Amount
+            // Total
             ctx.fillStyle = "#000000";
-            ctx.font = "bold 38px Arial";
+            ctx.font = "bold 40px Arial";
             ctx.fillText("Total Amount:", summaryBoxX + 30, summaryY);
             ctx.textAlign = "right";
             ctx.fillText(`₹${o.financials.total}`, summaryBoxX + summaryBoxWidth - 30, summaryY);
+            summaryY += 45;
             
-            summaryY += 40;
+            // Payment Mode
             ctx.textAlign = "center";
             ctx.font = "28px Arial";
             ctx.fillStyle = "#666666";
             ctx.fillText(`Payment Mode: ${o.financials.mode || 'Cash / UPI / Card'}`, summaryBoxX + summaryBoxWidth/2, summaryY);
             
-            // ===== FOOTER =====
-            y = height - 250;
+            // ===== FOOTER WITH T&C =====
+            y = summaryBoxY + summaryBoxHeight + 80;
             
             ctx.fillStyle = "#666666";
-            ctx.font = "28px Arial";
+            ctx.font = "26px Arial";
             ctx.textAlign = "center";
             ctx.fillText('Terms & Conditions: "No guarantee on color restoration. No warranty on white shoes.', width/2, y);
             y += 40;
@@ -1756,23 +1748,11 @@
             ctx.fillText("Thank you for choosing Mr Boot Shoe Laundry & Repair!", width/2, y);
             
             y += 60;
-            ctx.fillStyle = "#34C759";
-            ctx.font = "bold 36px Arial";
+            ctx.fillStyle = "#25D366";
+            ctx.font = "bold 38px Arial";
             ctx.fillText("Contact: +91 9028983659", width/2, y);
             
-            // QR Code placeholder (you can add actual QR generation if needed)
-            const qrSize = 100;
-            const qrX = width - 60 - qrSize;
-            const qrY = height - 180;
-            ctx.fillStyle = "#000000";
-            ctx.fillRect(qrX, qrY, qrSize, qrSize);
-            ctx.fillStyle = "#FFFFFF";
-            ctx.font = "14px Arial";
-            ctx.textAlign = "center";
-            ctx.fillText("Scan for", qrX + qrSize/2, qrY + qrSize + 20);
-            ctx.fillText("Payment/Details", qrX + qrSize/2, qrY + qrSize + 40);
-            
-            // Download the bill
+            // Download
             canvas.toBlob(blob => {
                 const a = document.createElement('a');
                 a.download = `invoice_${o.seqId}.png`;
@@ -1817,12 +1797,12 @@
             if(action === 'Ready') {
                 if(!confirm(`Mark ${window.selectedOrders.size} orders as Ready?`)) return;
                 for(const id of window.selectedOrders) {
-                    await updateDoc(doc(db, "orders", id), { status: 'Ready' });
+                    await db.collection("orders").doc(id).update( { status: 'Ready' });
                 }
             } else if(action === 'Delete') {
                 if(!confirm(`Delete ${window.selectedOrders.size} orders permanently?`)) return;
                 for(const id of window.selectedOrders) {
-                    await deleteDoc(doc(db, "orders", id));
+                    await db.collection("orders").doc(id).delete();
                 }
             }
             
