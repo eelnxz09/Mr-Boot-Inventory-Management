@@ -1125,9 +1125,16 @@ Your feedback helps us improve and helps others discover our service! 🙏
             if(o.status === 'Pending') {
                 actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.shareBill('${o.id}')">Send Bill</button><button class="btn btn-primary" onclick="window.updateStatus('${o.id}', 'Ready')">Mark Ready</button>`;
             } else if (o.status === 'Ready') {
-                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.sendWhatsApp('${o.customer.phone}', 'Hello ${o.customer.name}, your order #${o.seqId} is ready!')">Notify</button><button class="btn btn-primary" onclick="window.initiateCompleteOrder('${o.id}')">Complete</button>`;
+                actions.innerHTML = `
+                    <button class="btn btn-whatsapp" onclick="window.sendWhatsApp('${o.customer.phone}', 'Hello ${o.customer.name}, your order #${o.seqId} is ready!')">Notify</button>
+                    <button class="btn btn-primary" onclick="window.initiateCompleteOrder('${o.id}')">Complete</button>
+                    <button class="btn btn-outline" onclick="window.undoStatus('${o.id}', 'Pending')" style="background:#FF9500; color:white; border:none;">↩️ Undo (Pending)</button>
+                `;
             } else {
-                actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.requestReview('${o.id}')">⭐ Ask Review</button>`;
+                actions.innerHTML = `
+                    <button class="btn btn-whatsapp" onclick="window.requestReview('${o.id}')">⭐ Ask Review</button>
+                    <button class="btn btn-outline" onclick="window.undoStatus('${o.id}', 'Ready')" style="background:#FF9500; color:white; border:none;">↩️ Undo (Ready)</button>
+                `;
             }
             document.getElementById('modal-view-order').classList.add('open');
         };
@@ -1146,6 +1153,40 @@ Your feedback helps us improve and helps others discover our service! 🙏
                     }, 500);
                 }
             } catch(e) { alert("Error updating: " + e.message); }
+        };
+        
+        // UNDO STATUS - Move back to previous status
+        window.undoStatus = async (id, newStatus) => {
+            const order = window.orders.find(o => o.id === id);
+            if (!order) return;
+            
+            const currentStatus = order.status;
+            const statusNames = {
+                'Pending': 'Pending',
+                'Ready': 'Ready',
+                'Completed': 'Completed'
+            };
+            
+            const confirmMessage = `Are you sure you want to change status?\n\n${statusNames[currentStatus]} → ${statusNames[newStatus]}\n\nOrder #${order.seqId} - ${order.customer.name}`;
+            
+            if(!confirm(confirmMessage)) return;
+            
+            try {
+                const updates = { status: newStatus };
+                
+                // If moving back from Completed, restore the balance
+                if(currentStatus === 'Completed' && newStatus !== 'Completed') {
+                    const originalBalance = order.financials.total - order.financials.advance;
+                    updates['financials.balance'] = originalBalance;
+                }
+                
+                await db.collection("orders").doc(id).update(updates);
+                window.closeModal('modal-view-order');
+                
+                alert(`✅ Status changed back to ${statusNames[newStatus]}!`);
+            } catch(e) {
+                alert("Error undoing status: " + e.message);
+            }
         };
 
         window.initiateCompleteOrder = (id) => {
