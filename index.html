@@ -3,6 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Mr Boot">
+    <meta name="theme-color" content="#4E342E">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png">
     <title>Mr Boot Manager (Online)</title>
     <!-- HEIC Conversion Library -->
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
@@ -235,6 +242,7 @@
             </div>
         </div>
         <div style="display:flex; align-items:center; gap:10px;">
+            <button id="install-btn" style="display:none; background:#4E342E; color:white; border:none; padding:6px 12px; border-radius:8px; font-size:11px; cursor:pointer;">📱 Install App</button>
             <div id="db-status" style="width:8px; height:8px; border-radius:50%; background:#ccc;"></div>
             <span id="user-email-display" style="font-size:10px; color:#666; max-width:80px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;"></span>
             <button onclick="window.logout()" style="background:none; border:none; font-size:12px; color:red;">Exit</button>
@@ -577,6 +585,138 @@
         const REVIEW_LINK = "https://g.page/r/Ce0M0864Elt6EBE/review";
         const ALL_SERVICES = ["Standard Laundry", "Premium Deep Clean", "Sole Pasting", "Net Change", "Sole Change", "Heel Change", "Patch Work", "Grip Rubber", "Grip TPR", "Bag Chain Change", "Tongue Change", "Insole Change", "Colour Dye", "Repair", "Other"];
 
+        // ===== AUTO-NOTIFICATION FUNCTIONS (Defined early so they're available) =====
+        
+        // Function to send WhatsApp message (Mobile-optimized)
+        function sendAutoWhatsApp(phone, message) {
+            const cleanPhone = phone.replace(/\D/g, '');
+            const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
+            
+            // Mobile-friendly: Use location.href on mobile, window.open on desktop
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // On mobile: Direct navigation works better
+                window.location.href = whatsappUrl;
+            } else {
+                // On desktop: Open in new tab
+                window.open(whatsappUrl, '_blank');
+            }
+        }
+        
+        // Auto-notify when order status changes to "Ready"
+        window.notifyCustomerOrderReady = (orderId) => {
+            console.log('🔔 notifyCustomerOrderReady called for:', orderId);
+            const order = window.orders.find(o => o.id === orderId);
+            if (!order) {
+                console.error('Order not found:', orderId);
+                return;
+            }
+            
+            const itemsList = order.items ? order.items.map(i => `• ${i.brand || ''} ${i.type}`.trim()).join('\n') : '';
+            
+            const message = `🎉 Great News ${order.customer.name}!
+
+Your order #${order.seqId} is READY for pickup! ✨
+
+📋 Items:
+${itemsList}
+
+💰 Balance to Pay: ₹${order.financials.balance}
+
+📍 Please visit us at your convenience or we can arrange delivery.
+
+📞 Contact: +91 9028983659
+
+Thank you! 🙏
+- Mr Boot Shoe Laundry & Repair`;
+            
+            console.log('Message prepared, showing confirm dialog');
+            if (confirm("✅ Order marked as Ready!\n\nSend pickup notification to customer?")) {
+                console.log('User confirmed, opening WhatsApp');
+                sendAutoWhatsApp(order.customer.phone, message);
+            } else {
+                console.log('User cancelled notification');
+            }
+        };
+        
+        // Auto-send bill via WhatsApp after order creation
+        window.autoSendBillAfterCreation = async (orderId) => {
+            try {
+                console.log('📄 autoSendBillAfterCreation called for:', orderId);
+                const order = window.orders.find(o => o.id === orderId);
+                if (!order) {
+                    console.error('Order not found:', orderId);
+                    return;
+                }
+                
+                // Generate bill first
+                await window.shareBill(orderId);
+                
+                // Wait a moment for bill to download, then prompt for WhatsApp
+                setTimeout(() => {
+                    const itemsList = order.items ? order.items.map(i => `• ${i.brand || ''} ${i.type}`.trim()).join('\n') : '';
+                    
+                    const message = `Hello ${order.customer.name}! 
+                    
+Your order #${order.seqId} has been received at Mr Boot Shoe Laundry & Repair.
+
+📋 Order Details:
+${itemsList}
+
+💰 Total Amount: ₹${order.financials.total}
+💵 Advance Paid: ₹${order.financials.advance}
+💳 Balance: ₹${order.financials.balance}
+
+📅 Expected Delivery: ${order.deliveryDate || 'TBD'}
+
+Your bill has been generated. We'll notify you when your order is ready!
+
+Thank you for choosing us! 🙏`;
+                    
+                    if (confirm("Send bill and order confirmation to customer via WhatsApp?")) {
+                        sendAutoWhatsApp(order.customer.phone, message);
+                    }
+                }, 2000);
+            } catch(e) {
+                console.error("Auto-send error:", e);
+            }
+        };
+        
+        // Check for orders due tomorrow and send admin reminders
+        window.checkDueDateReminders = () => {
+            console.log('📅 Checking due date reminders...');
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            
+            const dueOrders = window.orders.filter(o => 
+                o.deliveryDate === tomorrowStr && 
+                o.status !== 'Completed'
+            );
+            
+            console.log(`Found ${dueOrders.length} orders due tomorrow`);
+            
+            if (dueOrders.length > 0) {
+                const ordersList = dueOrders.map(o => 
+                    `#${o.seqId} - ${o.customer.name} (${o.customer.phone})`
+                ).join('\n');
+                
+                alert(`⚠️ REMINDER: ${dueOrders.length} order(s) due TOMORROW!\n\n${ordersList}\n\nMake sure they're ready!`);
+                
+                // Show in a card on dashboard
+                const alertDiv = document.getElementById('delivery-alert');
+                if (alertDiv) {
+                    alertDiv.classList.remove('hidden');
+                    alertDiv.style.background = '#FFF3CD';
+                    alertDiv.style.color = '#856404';
+                    alertDiv.innerHTML = `⚠️ <b>${dueOrders.length} order(s) due TOMORROW!</b> Check Orders tab.`;
+                }
+            } else {
+                console.log('No orders due tomorrow');
+            }
+        };
+
         // --- Loader ---
         const showLoading = (msg) => {
             document.getElementById('loading-text').innerText = msg;
@@ -659,6 +799,18 @@
                 initListeners(() => {
                     console.log('✅ Listeners initialized');
                     clearTimeout(loadTimeout);
+                    
+                    // Check reminders after data loads
+                    setTimeout(() => {
+                        console.log('🔔 Running initial reminder check');
+                        window.checkDueDateReminders();
+                    }, 2000);
+                    
+                    // Check every hour
+                    setInterval(() => {
+                        console.log('🔔 Running hourly reminder check');
+                        window.checkDueDateReminders();
+                    }, 3600000); // 1 hour
                 }); 
             } else {
                 console.log('⚠️ No user - showing login screen');
@@ -1789,119 +1941,6 @@
             }
         };
 
-        // ===== AUTO-NOTIFICATION SYSTEM =====
-        
-        // Function to send WhatsApp message
-        function sendAutoWhatsApp(phone, message) {
-            const cleanPhone = phone.replace(/\D/g, '');
-            const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
-            window.open(whatsappUrl, '_blank');
-        }
-        
-        // Auto-send bill via WhatsApp after order creation
-        window.autoSendBillAfterCreation = async (orderId) => {
-            try {
-                const order = window.orders.find(o => o.id === orderId);
-                if (!order) return;
-                
-                // Generate bill first
-                await window.shareBill(orderId);
-                
-                // Wait a moment for bill to download, then prompt for WhatsApp
-                setTimeout(() => {
-                    const message = `Hello ${order.customer.name}! 
-                    
-Your order #${order.seqId} has been received at Mr Boot Shoe Laundry & Repair.
-
-📋 Order Details:
-${order.items.map(i => `• ${i.brand || ''} ${i.type}`.trim()).join('\n')}
-
-💰 Total Amount: ₹${order.financials.total}
-💵 Advance Paid: ₹${order.financials.advance}
-💳 Balance: ₹${order.financials.balance}
-
-📅 Expected Delivery: ${order.deliveryDate || 'TBD'}
-
-Your bill has been generated. We'll notify you when your order is ready!
-
-Thank you for choosing us! 🙏`;
-                    
-                    if (confirm("Send bill and order confirmation to customer via WhatsApp?")) {
-                        sendAutoWhatsApp(order.customer.phone, message);
-                    }
-                }, 2000);
-            } catch(e) {
-                console.error("Auto-send error:", e);
-            }
-        };
-        
-        // Auto-notify when order status changes to "Ready"
-        window.notifyCustomerOrderReady = (orderId) => {
-            const order = window.orders.find(o => o.id === orderId);
-            if (!order) return;
-            
-            const message = `🎉 Great News ${order.customer.name}!
-
-Your order #${order.seqId} is READY for pickup! ✨
-
-📋 Items:
-${order.items.map(i => `• ${i.brand || ''} ${i.type}`.trim()).join('\n')}
-
-💰 Balance to Pay: ₹${order.financials.balance}
-
-📍 Please visit us at your convenience or we can arrange delivery.
-
-📞 Contact: +91 9028983659
-
-Thank you! 🙏
-- Mr Boot Shoe Laundry & Repair`;
-            
-            if (confirm("✅ Order marked as Ready!\n\nSend pickup notification to customer?")) {
-                sendAutoWhatsApp(order.customer.phone, message);
-            }
-        };
-        
-        // Check for orders due tomorrow and send admin reminders
-        window.checkDueDateReminders = () => {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().split('T')[0];
-            
-            const dueOrders = window.orders.filter(o => 
-                o.deliveryDate === tomorrowStr && 
-                o.status !== 'Completed'
-            );
-            
-            if (dueOrders.length > 0) {
-                const ordersList = dueOrders.map(o => 
-                    `#${o.seqId} - ${o.customer.name} (${o.customer.phone})`
-                ).join('\n');
-                
-                alert(`⚠️ REMINDER: ${dueOrders.length} order(s) due TOMORROW!\n\n${ordersList}\n\nMake sure they're ready!`);
-                
-                // Show in a card on dashboard
-                const alertDiv = document.getElementById('delivery-alert');
-                if (alertDiv) {
-                    alertDiv.classList.remove('hidden');
-                    alertDiv.style.background = '#FFF3CD';
-                    alertDiv.style.color = '#856404';
-                    alertDiv.innerHTML = `⚠️ <b>${dueOrders.length} order(s) due TOMORROW!</b> Check Orders tab.`;
-                }
-            }
-        };
-        
-        // Auto-check reminders when app loads and every hour
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                window.checkDueDateReminders();
-            }, 3000); // Check 3 seconds after load
-            
-            // Check every hour
-            setInterval(() => {
-                window.checkDueDateReminders();
-            }, 3600000); // 1 hour in milliseconds
-        });
-
         // Stub functions for features not yet implemented
         window.toggleSelectMode = () => {
             window.isSelectMode = !window.isSelectMode;
@@ -1944,6 +1983,40 @@ Thank you! 🙏
             document.getElementById('bulk-actions-bar').classList.remove('visible');
             window.renderOrders();
         };
+        
+        // ===== PWA INSTALL PROMPT =====
+        let deferredPrompt;
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('📱 Install prompt available');
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // Show install button
+            const installBtn = document.getElementById('install-btn');
+            if (installBtn) {
+                installBtn.style.display = 'block';
+                installBtn.onclick = async () => {
+                    if (!deferredPrompt) return;
+                    
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log(`User response: ${outcome}`);
+                    
+                    if (outcome === 'accepted') {
+                        alert('🎉 App installed! You can now access Mr Boot from your home screen!');
+                    }
+                    
+                    deferredPrompt = null;
+                    installBtn.style.display = 'none';
+                };
+            }
+        });
+        
+        window.addEventListener('appinstalled', () => {
+            console.log('✅ PWA installed successfully');
+            alert('✅ Mr Boot app installed! Access it from your home screen.');
+        });
     </script>
 </body>
 </html>
