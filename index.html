@@ -1016,14 +1016,24 @@ Your feedback helps us improve and helps others discover our service! 🙏
                 window.orders.forEach(o => { const s = parseInt(o.seqId); if(!isNaN(s) && s > maxSeq) maxSeq = s; });
                 const seqId = String(maxSeq + 1).padStart(3, '0');
                 
-                const itemTotal = parseFloat(document.getElementById('ord-item-total').value);
-                const deliveryCharge = parseFloat(document.getElementById('ord-delivery-charge').value)||0;
-                const advance = parseFloat(document.getElementById('ord-advance').value)||0;
+                // Safe element getter with null check
+                const getElementValue = (id, defaultValue = '') => {
+                    const el = document.getElementById(id);
+                    if (!el) {
+                        console.error(`Element not found: ${id}`);
+                        return defaultValue;
+                    }
+                    return el.value || defaultValue;
+                };
+                
+                const itemTotal = parseFloat(getElementValue('ord-item-total', '0'));
+                const deliveryCharge = parseFloat(getElementValue('ord-delivery-charge', '0')) || 0;
+                const advance = parseFloat(getElementValue('ord-advance', '0')) || 0;
                 
                 // Get add-on price if selected
                 let addonPrice = 0;
                 let addonName = '';
-                const stockId = document.getElementById('ord-stock-item').value;
+                const stockId = getElementValue('ord-stock-item', '');
                 if(stockId) {
                     const stockItem = window.inventory.find(i => i.id === stockId);
                     if(stockItem) {
@@ -1037,16 +1047,16 @@ Your feedback helps us improve and helps others discover our service! 🙏
                 const orderData = {
                     seqId, timestamp: Date.now(),
                     date: new Date().toLocaleDateString(),
-                    deliveryDate: document.getElementById('ord-date-delivery').value,
+                    deliveryDate: getElementValue('ord-date-delivery'),
                     customer: { 
-                        name: document.getElementById('ord-name').value, 
-                        phone: document.getElementById('ord-phone').value,
-                        address: document.getElementById('ord-address').value
+                        name: getElementValue('ord-name'), 
+                        phone: getElementValue('ord-phone'),
+                        address: getElementValue('ord-address')
                     },
                     items,
                     delivery: { 
-                        mode: document.getElementById('ord-delivery-mode').value, 
-                        porterCost: parseFloat(document.getElementById('ord-porter-cost').value)||0, 
+                        mode: getElementValue('ord-delivery-mode', 'Pickup'), 
+                        porterCost: parseFloat(getElementValue('ord-porter-cost', '0')) || 0, 
                         charge: deliveryCharge 
                     },
                     financials: { 
@@ -1057,7 +1067,7 @@ Your feedback helps us improve and helps others discover our service! 🙏
                         total: finalTotal, 
                         advance, 
                         balance: finalTotal - advance, 
-                        mode: document.getElementById('ord-paymode').value 
+                        mode: getElementValue('ord-paymode', 'Cash') 
                     },
                     status: 'Pending',
                     stockUsed: stockId || null
@@ -1399,26 +1409,38 @@ Your feedback helps us improve and helps others discover our service! 🙏
         };
         window.calcBalance = () => {
             let total = 0; 
-            document.querySelectorAll('.item-price').forEach(i => total += (parseFloat(i.value)||0)); 
-            document.getElementById('ord-item-total').value = total;
+            document.querySelectorAll('.item-price').forEach(i => total += (parseFloat(i.value)||0));
             
-            const del = parseFloat(document.getElementById('ord-delivery-charge').value)||0; 
-            const adv = parseFloat(document.getElementById('ord-advance').value)||0;
+            const itemTotalEl = document.getElementById('ord-item-total');
+            if(itemTotalEl) itemTotalEl.value = total;
+            
+            const delEl = document.getElementById('ord-delivery-charge');
+            const advEl = document.getElementById('ord-advance');
+            const del = delEl ? (parseFloat(delEl.value)||0) : 0; 
+            const adv = advEl ? (parseFloat(advEl.value)||0) : 0;
             
             // Add add-on price
             let addonPrice = 0;
-            const stockId = document.getElementById('ord-stock-item').value;
-            if(stockId) {
-                const stockItem = window.inventory.find(i => i.id === stockId);
-                if(stockItem) {
-                    addonPrice = parseFloat(stockItem.price) || 0;
+            const stockEl = document.getElementById('ord-stock-item');
+            if(stockEl) {
+                const stockId = stockEl.value;
+                if(stockId) {
+                    const stockItem = window.inventory.find(i => i.id === stockId);
+                    if(stockItem) {
+                        addonPrice = parseFloat(stockItem.price) || 0;
+                    }
                 }
             }
             
-            document.getElementById('ord-balance').innerText = (total + del + addonPrice - adv);
+            const balanceEl = document.getElementById('ord-balance');
+            if(balanceEl) balanceEl.innerText = (total + del + addonPrice - adv);
         }
         window.toggleDeliveryFields = () => {
-            const mode = document.getElementById('ord-delivery-mode').value; document.getElementById('delivery-fields').style.display = mode === 'Pickup' ? 'block' : 'none';
+            const modeEl = document.getElementById('ord-delivery-mode');
+            const fieldsEl = document.getElementById('delivery-fields');
+            if(modeEl && fieldsEl) {
+                fieldsEl.style.display = modeEl.value === 'Pickup' ? 'block' : 'none';
+            }
         }
         window.openInventoryModal = () => document.getElementById('modal-inventory').classList.add('open');
         window.saveInventory = async (e) => {
@@ -1664,9 +1686,15 @@ Your feedback helps us improve and helps others discover our service! 🙏
         window.calcEditBalance = () => {
             let total = 0;
             document.querySelectorAll('.edit-item-price').forEach(i => total += (parseFloat(i.value) || 0));
-            document.getElementById('edit-ord-item-total').value = total;
-            const adv = parseFloat(document.getElementById('edit-ord-advance').value) || 0;
-            document.getElementById('edit-ord-balance').innerText = total - adv;
+            
+            const itemTotalEl = document.getElementById('edit-ord-item-total');
+            if(itemTotalEl) itemTotalEl.value = total;
+            
+            const advEl = document.getElementById('edit-ord-advance');
+            const adv = advEl ? (parseFloat(advEl.value) || 0) : 0;
+            
+            const balanceEl = document.getElementById('edit-ord-balance');
+            if(balanceEl) balanceEl.innerText = total - adv;
         };
         
         window.saveEditedOrder = async () => {
@@ -1675,26 +1703,40 @@ Your feedback helps us improve and helps others discover our service! 🙏
             try {
                 const items = [];
                 document.querySelectorAll('#edit-order-items-container .item-row').forEach(r => {
+                    const typeSelect = r.querySelector('.edit-item-type');
+                    const typeOtherInput = r.querySelector('.edit-item-type-other');
+                    
+                    // Use custom type if "Other" is selected and text is provided
+                    let productType = typeSelect ? typeSelect.value : '';
+                    if(productType === 'Other' && typeOtherInput && typeOtherInput.value.trim()) {
+                        productType = typeOtherInput.value.trim();
+                    }
+                    
                     items.push({
-                        brand: r.querySelector('.edit-item-brand').value,
-                        type: r.querySelector('.edit-item-type').value,
-                        service: r.querySelector('.edit-item-service').value,
-                        specs: r.querySelector('.edit-item-specs').value,
-                        price: parseFloat(r.querySelector('.edit-item-price').value) || 0
+                        brand: r.querySelector('.edit-item-brand')?.value || '',
+                        type: productType,
+                        service: r.querySelector('.edit-item-service')?.value || '',
+                        specs: r.querySelector('.edit-item-specs')?.value || '',
+                        price: parseFloat(r.querySelector('.edit-item-price')?.value) || 0
                     });
                 });
                 
                 if (!items.length) return alert("Add at least one item");
                 
-                const itemTotal = parseFloat(document.getElementById('edit-ord-item-total').value);
-                const advance = parseFloat(document.getElementById('edit-ord-advance').value) || 0;
+                const getEditValue = (id, defaultValue = '') => {
+                    const el = document.getElementById(id);
+                    return el ? (el.value || defaultValue) : defaultValue;
+                };
+                
+                const itemTotal = parseFloat(getEditValue('edit-ord-item-total', '0'));
+                const advance = parseFloat(getEditValue('edit-ord-advance', '0')) || 0;
                 
                 const updates = {
-                    'customer.name': document.getElementById('edit-ord-name').value,
-                    'customer.phone': document.getElementById('edit-ord-phone').value,
-                    'customer.address': document.getElementById('edit-ord-address').value,
-                    'deliveryDate': document.getElementById('edit-ord-date-delivery').value,
-                    'status': document.getElementById('edit-ord-status').value,
+                    'customer.name': getEditValue('edit-ord-name'),
+                    'customer.phone': getEditValue('edit-ord-phone'),
+                    'customer.address': getEditValue('edit-ord-address'),
+                    'deliveryDate': getEditValue('edit-ord-date-delivery'),
+                    'status': getEditValue('edit-ord-status', 'Pending'),
                     'items': items,
                     'financials.itemTotal': itemTotal,
                     'financials.total': itemTotal,
