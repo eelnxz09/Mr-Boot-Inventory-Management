@@ -252,6 +252,7 @@
             </div>
         </div>
         <div style="display:flex; align-items:center; gap:10px;">
+            <button id="voice-btn" onclick="window.toggleVoiceCommand()" title="Voice Commands" style="background:#FF9500; color:white; border:none; padding:6px 12px; border-radius:50%; font-size:16px; cursor:pointer; box-shadow:0 2px 8px rgba(255,149,0,0.3); width:36px; height:36px; display:flex; align-items:center; justify-content:center;">🎤</button>
             <button id="ai-assistant-btn" onclick="window.openAIAssistant()" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; border:none; padding:6px 12px; border-radius:8px; font-size:11px; cursor:pointer; box-shadow:0 2px 8px rgba(102,126,234,0.3);">✨ AI Assistant</button>
             <button id="install-btn" style="display:none; background:#4E342E; color:white; border:none; padding:6px 12px; border-radius:8px; font-size:11px; cursor:pointer;">📱 Install App</button>
             <div id="db-status" style="width:8px; height:8px; border-radius:50%; background:#ccc;"></div>
@@ -391,6 +392,7 @@
                 <div class="card" style="background:#F9F9F9; border:none;">
                     <label>Customer</label>
                     <input type="tel" id="ord-phone" placeholder="Mobile" required>
+                    <input type="tel" id="ord-whatsapp" placeholder="WhatsApp (leave empty if same as mobile)">
                     <input type="text" id="ord-name" placeholder="Name" required>
                     <textarea id="ord-address" rows="2" placeholder="Address"></textarea>
                 </div>
@@ -412,10 +414,10 @@
                 <label style="margin-top:16px;">Photos</label>
                 <div style="background:#E5F1FF; padding:12px; border-radius:10px; margin-bottom:12px; border: 1px dashed #007AFF;">
                     <label style="color:#007AFF; font-weight:bold;">📸 Main Photo (For Bill)</label>
-                    <input type="file" id="ord-main-image" accept="image/*" style="margin-bottom:0;">
+                    <input type="file" id="ord-main-image" accept="image/*" capture="environment" style="margin-bottom:0;">
                 </div>
                 <label>Additional Photos</label>
-                <input type="file" id="ord-images" multiple accept="image/*">
+                <input type="file" id="ord-images" multiple accept="image/*" capture="environment">
 
                 <select id="ord-stock-item" style="margin-top:12px;" onchange="window.calcBalance()"><option value="">-- Select Add-on --</option></select>
                 <label style="margin-top:16px;">Delivery</label>
@@ -519,7 +521,7 @@
         <div class="modal-header"><h3>Complete</h3><button class="close-btn" onclick="window.closeModal('modal-proof')">&times;</button></div>
         <div class="modal-body">
             <p>Upload completion proof:</p>
-            <input type="file" id="proof-image" accept="image/*">
+            <input type="file" id="proof-image" accept="image/*" capture="environment">
             <button class="btn btn-primary" onclick="window.saveProofAndComplete()">Complete</button>
         </div>
     </div>
@@ -585,7 +587,7 @@
         <div class="modal-header"><h3>Upload to Gallery</h3><button class="close-btn" onclick="window.closeModal('modal-gallery-upload')">&times;</button></div>
         <div class="modal-body">
             <input type="text" id="gal-caption" placeholder="Caption (e.g., Before & After)">
-            <input type="file" id="gal-image" accept="image/*">
+            <input type="file" id="gal-image" accept="image/*" capture="environment">
             <button class="btn btn-primary" onclick="window.saveGalleryItem()">Upload</button>
         </div>
     </div>
@@ -662,6 +664,7 @@
             "Sole Change", 
             "Heel Change",
             "Heel Repair",
+            "Counter Change",
             "Zipper Repair",
             "Zipper Change",
             "Net Change", 
@@ -738,7 +741,8 @@ Thank you! 🙏
             console.log('Message prepared, showing confirm dialog');
             if (confirm("✅ Order marked as Ready!\n\nSend pickup notification to customer?")) {
                 console.log('User confirmed, opening WhatsApp');
-                sendAutoWhatsApp(order.customer.phone, message);
+                const whatsappNumber = order.customer.whatsapp || order.customer.phone;
+                sendAutoWhatsApp(whatsappNumber, message);
             } else {
                 console.log('User cancelled notification');
             }
@@ -895,7 +899,8 @@ Your feedback helps us improve and helps others discover our service! 🙏
 📞 +91 9028983659`;
             
             if (confirm("Send review request to customer via WhatsApp?")) {
-                sendAutoWhatsApp(order.customer.phone, message);
+                const whatsappNumber = order.customer.whatsapp || order.customer.phone;
+                sendAutoWhatsApp(whatsappNumber, message);
             }
         };
 
@@ -1179,6 +1184,7 @@ Your feedback helps us improve and helps others discover our service! 🙏
                     customer: { 
                         name: getElementValue('ord-name'), 
                         phone: getElementValue('ord-phone'),
+                        whatsapp: getElementValue('ord-whatsapp') || getElementValue('ord-phone'),
                         address: getElementValue('ord-address')
                     },
                     items,
@@ -1315,8 +1321,9 @@ Your feedback helps us improve and helps others discover our service! 🙏
             if(o.status === 'Pending') {
                 actions.innerHTML = `<button class="btn btn-whatsapp" onclick="window.shareBill('${o.id}')">Send Bill</button><button class="btn btn-primary" onclick="window.updateStatus('${o.id}', 'Ready')">Mark Ready</button>`;
             } else if (o.status === 'Ready') {
+                const whatsappNum = o.customer.whatsapp || o.customer.phone;
                 actions.innerHTML = `
-                    <button class="btn btn-whatsapp" onclick="window.sendWhatsApp('${o.customer.phone}', 'Hello ${o.customer.name}, your order #${o.seqId} is ready!')">Notify</button>
+                    <button class="btn btn-whatsapp" onclick="window.sendWhatsApp('${whatsappNum}', 'Hello ${o.customer.name}, your order #${o.seqId} is ready!')">Notify</button>
                     <button class="btn btn-primary" onclick="window.initiateCompleteOrder('${o.id}')">Complete</button>
                     <button class="btn" onclick="window.undoStatus('${o.id}', 'Pending')" style="background:#FF9500; color:white; border:none; margin-left:auto; padding:10px 16px; font-size:14px;">↩️ Undo to Pending</button>
                 `;
@@ -1989,6 +1996,10 @@ Your feedback helps us improve and helps others discover our service! 🙏
             canvas.width = width;
             canvas.height = height;
             
+            // Enable high quality image rendering
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
             // Fill white background
             ctx.fillStyle = "white";
             ctx.fillRect(0, 0, width, height);
@@ -2377,7 +2388,8 @@ Your feedback helps us improve and helps others discover our service! 🙏
                 a.click();
                 setTimeout(() => {
                     if(confirm("Bill Downloaded. Open WhatsApp now?")) {
-                        window.sendWhatsApp(o.customer.phone, "Here is your service invoice. Please check the attached image.");
+                        const whatsappNumber = o.customer.whatsapp || o.customer.phone;
+                        window.sendWhatsApp(whatsappNumber, "Here is your service invoice. Please check the attached image.");
                     }
                 }, 1000);
             });
@@ -2537,6 +2549,224 @@ Please provide helpful, specific advice for Mr Boot shoe laundry business.`;
                 chatContainer.scrollTop = chatContainer.scrollHeight;
             }
         };
+        
+        // ===== PUSH NOTIFICATIONS =====
+        
+        // Request notification permission on load
+        window.requestNotificationPermission = async () => {
+            if (!('Notification' in window)) {
+                console.log('Browser does not support notifications');
+                return false;
+            }
+            
+            if (Notification.permission === 'granted') {
+                return true;
+            }
+            
+            if (Notification.permission !== 'denied') {
+                const permission = await Notification.requestPermission();
+                return permission === 'granted';
+            }
+            
+            return false;
+        };
+        
+        // Send push notification
+        window.sendPushNotification = (title, body, icon = null) => {
+            if (Notification.permission === 'granted') {
+                new Notification(title, {
+                    body: body,
+                    icon: icon || 'https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png',
+                    badge: 'https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png',
+                    tag: 'mr-boot-notification',
+                    requireInteraction: false
+                });
+            }
+        };
+        
+        // Check due dates and send push notification
+        window.checkDueDatesAndNotify = () => {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            
+            const dueOrders = window.orders.filter(o => 
+                o.deliveryDate === tomorrowStr && 
+                o.status !== 'Completed'
+            );
+            
+            if (dueOrders.length > 0) {
+                window.sendPushNotification(
+                    '⚠️ Orders Due Tomorrow!',
+                    `${dueOrders.length} order(s) need to be ready for pickup tomorrow`,
+                    null
+                );
+            }
+        };
+        
+        // Auto-check due dates every hour
+        setInterval(() => {
+            window.checkDueDatesAndNotify();
+        }, 3600000); // Every hour
+        
+        // Check on load after 2 seconds
+        setTimeout(() => {
+            window.checkDueDatesAndNotify();
+        }, 2000);
+        
+        // ===== VOICE COMMANDS =====
+        
+        let recognition = null;
+        let isListening = false;
+        
+        // Initialize voice recognition
+        window.initVoiceCommands = () => {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                console.log('Voice recognition not supported');
+                return false;
+            }
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            
+            recognition.continuous = false;
+            recognition.lang = 'en-IN';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+            
+            recognition.onresult = (event) => {
+                const command = event.results[0][0].transcript.toLowerCase();
+                console.log('Voice command:', command);
+                window.processVoiceCommand(command);
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('Voice recognition error:', event.error);
+                isListening = false;
+                const btn = document.getElementById('voice-btn');
+                if (btn) btn.textContent = '🎤';
+            };
+            
+            recognition.onend = () => {
+                isListening = false;
+                const btn = document.getElementById('voice-btn');
+                if (btn) btn.textContent = '🎤';
+            };
+            
+            return true;
+        };
+        
+        // Toggle voice listening
+        window.toggleVoiceCommand = () => {
+            if (!recognition && !window.initVoiceCommands()) {
+                alert('Voice commands not supported in your browser');
+                return;
+            }
+            
+            const btn = document.getElementById('voice-btn');
+            
+            if (isListening) {
+                recognition.stop();
+                isListening = false;
+                btn.textContent = '🎤';
+            } else {
+                recognition.start();
+                isListening = true;
+                btn.textContent = '🔴';
+                window.sendPushNotification('Voice Command', 'Listening... Try saying "new order" or "show reports"');
+            }
+        };
+        
+        // Process voice commands
+        window.processVoiceCommand = (command) => {
+            if (command.includes('new order') || command.includes('create order')) {
+                window.switchView('orders', document.querySelector('.nav-item'));
+                alert('Voice command: Opening new order form');
+            } else if (command.includes('report') || command.includes('reports')) {
+                window.switchView('reports', document.querySelectorAll('.nav-item')[3]);
+                alert('Voice command: Opening reports');
+            } else if (command.includes('customer')) {
+                window.switchView('customers', document.querySelectorAll('.nav-item')[1]);
+                alert('Voice command: Opening customers');
+            } else if (command.includes('gallery')) {
+                window.switchView('gallery', document.querySelectorAll('.nav-item')[2]);
+                alert('Voice command: Opening gallery');
+            } else if (command.includes('inventory')) {
+                window.switchView('inventory', document.querySelectorAll('.nav-item')[4]);
+                alert('Voice command: Opening inventory');
+            } else {
+                alert(`Voice command not recognized: "${command}"\n\nTry:\n- "New order"\n- "Show reports"\n- "Open customers"\n- "Open gallery"`);
+            }
+        };
+        
+        // ===== GOOGLE SHEETS AUTO-EXPORT =====
+        
+        window.exportToGoogleSheets = async () => {
+            // This function would integrate with Google Sheets API
+            // For now, create CSV export
+            const csvData = window.generateDailyCSV();
+            
+            // In production, you would send this to Google Sheets API
+            console.log('Daily export data:', csvData);
+            
+            // For now, download as CSV
+            const blob = new Blob([csvData], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `mr_boot_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            window.sendPushNotification('Data Export', 'Daily data exported successfully');
+        };
+        
+        // Generate CSV for daily export
+        window.generateDailyCSV = () => {
+            const today = new Date().toLocaleDateString();
+            const todayOrders = window.orders.filter(o => o.date === today);
+            
+            let csv = 'Date,Order ID,Customer Name,Phone,WhatsApp,Items,Total,Advance,Balance,Status\n';
+            
+            todayOrders.forEach(o => {
+                const items = o.items.map(i => `${i.brand} ${i.type}`).join('; ');
+                csv += `"${o.date}","${o.seqId}","${o.customer.name}","${o.customer.phone}","${o.customer.whatsapp || o.customer.phone}","${items}",${o.financials.total},${o.financials.advance},${o.financials.balance},"${o.status}"\n`;
+            });
+            
+            return csv;
+        };
+        
+        // Schedule daily export at 12 AM
+        window.scheduleDailyExport = () => {
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            tomorrow.setHours(0, 0, 0, 0); // Midnight
+            
+            const timeUntilMidnight = tomorrow - now;
+            
+            setTimeout(() => {
+                // Export at midnight
+                window.exportToGoogleSheets();
+                
+                // Schedule next export (24 hours)
+                setInterval(() => {
+                    window.exportToGoogleSheets();
+                }, 86400000); // 24 hours
+            }, timeUntilMidnight);
+            
+            console.log('Daily export scheduled for midnight');
+        };
+        
+        // Start daily export schedule on load
+        window.addEventListener('load', () => {
+            window.scheduleDailyExport();
+            
+            // Request notification permission
+            setTimeout(() => {
+                window.requestNotificationPermission();
+            }, 3000);
+        });
         
         // ===== PWA INSTALL PROMPT =====
         let deferredPrompt;
