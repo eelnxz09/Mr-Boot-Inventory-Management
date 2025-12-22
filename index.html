@@ -476,6 +476,7 @@
                 <div class="card" style="background:#F9F9F9; border:none;">
                     <label>Customer</label>
                     <input type="tel" id="edit-ord-phone" placeholder="Mobile" required>
+                    <input type="tel" id="edit-ord-whatsapp" placeholder="WhatsApp (leave empty if same as mobile)">
                     <input type="text" id="edit-ord-name" placeholder="Name" required>
                     <textarea id="edit-ord-address" rows="2" placeholder="Address"></textarea>
                 </div>
@@ -1765,6 +1766,7 @@ Your feedback helps us improve and helps others discover our service! 🙏
             
             // Populate form
             document.getElementById('edit-ord-phone').value = o.customer.phone;
+            document.getElementById('edit-ord-whatsapp').value = o.customer.whatsapp || '';
             document.getElementById('edit-ord-name').value = o.customer.name;
             document.getElementById('edit-ord-address').value = o.customer.address || '';
             document.getElementById('edit-ord-date-delivery').value = o.deliveryDate || '';
@@ -1783,17 +1785,29 @@ Your feedback helps us improve and helps others discover our service! 🙏
                         <button type="button" class="remove-item" onclick="this.parentElement.remove(); window.calcEditBalance();">&times;</button>
                         <div class="flex-row">
                             <input type="text" class="edit-item-brand" placeholder="Brand" value="${item.brand || ''}">
-                            <select class="edit-item-type">
+                            <select class="edit-item-type" onchange="window.handleEditProductTypeChange(this)">
                                 <option ${item.type === 'Sneaker' ? 'selected' : ''}>Sneaker</option>
                                 <option ${item.type === 'Sport Shoe' ? 'selected' : ''}>Sport Shoe</option>
-                                <option ${item.type === 'Formals' ? 'selected' : ''}>Formals</option>
+                                <option ${item.type === 'Formal Shoe' ? 'selected' : ''}>Formal Shoe</option>
                                 <option ${item.type === 'Boots' ? 'selected' : ''}>Boots</option>
                                 <option ${item.type === 'Heels' ? 'selected' : ''}>Heels</option>
                                 <option ${item.type === 'Sandals' ? 'selected' : ''}>Sandals</option>
+                                <option ${item.type === 'Loafers' ? 'selected' : ''}>Loafers</option>
+                                <option ${item.type === 'Slippers' ? 'selected' : ''}>Slippers</option>
                                 <option ${item.type === 'Bags' ? 'selected' : ''}>Bags</option>
-                                <option ${item.type === 'Jackets' ? 'selected' : ''}>Jackets</option>
+                                <option ${item.type === 'Handbag' ? 'selected' : ''}>Handbag</option>
+                                <option ${item.type === 'Backpack' ? 'selected' : ''}>Backpack</option>
+                                <option ${item.type === 'Jacket' ? 'selected' : ''}>Jacket</option>
+                                <option ${item.type === 'Leather Jacket' ? 'selected' : ''}>Leather Jacket</option>
+                                <option ${item.type === 'Suede Shoes' ? 'selected' : ''}>Suede Shoes</option>
+                                <option ${item.type === 'Canvas Shoes' ? 'selected' : ''}>Canvas Shoes</option>
+                                <option ${item.type === 'Running Shoes' ? 'selected' : ''}>Running Shoes</option>
+                                <option ${item.type === 'Trekking Shoes' ? 'selected' : ''}>Trekking Shoes</option>
+                                <option ${item.type === 'School Shoes' ? 'selected' : ''}>School Shoes</option>
+                                <option ${item.type === 'Safety Shoes' ? 'selected' : ''}>Safety Shoes</option>
                                 <option ${item.type === 'Other' ? 'selected' : ''}>Other</option>
                             </select>
+                            <input type="text" class="edit-item-type-other" placeholder="Specify product type" style="display:none; margin-top:5px;" value="${item.type === 'Other' || !['Sneaker','Sport Shoe','Formal Shoe','Boots','Heels','Sandals','Loafers','Slippers','Bags','Handbag','Backpack','Jacket','Leather Jacket','Suede Shoes','Canvas Shoes','Running Shoes','Trekking Shoes','School Shoes','Safety Shoes'].includes(item.type) ? item.type : ''}">
                         </div>
                         <input type="text" class="edit-item-service" placeholder="Select Services" readonly onclick="window.openEditServiceSelector(this)" style="cursor:pointer; background:white;" value="${item.service || ''}">
                         <div class="flex-row">
@@ -1928,6 +1942,7 @@ Your feedback helps us improve and helps others discover our service! 🙏
                 const updates = {
                     'customer.name': getEditValue('edit-ord-name'),
                     'customer.phone': getEditValue('edit-ord-phone'),
+                    'customer.whatsapp': getEditValue('edit-ord-whatsapp') || getEditValue('edit-ord-phone'),
                     'customer.address': getEditValue('edit-ord-address'),
                     'deliveryDate': getEditValue('edit-ord-date-delivery'),
                     'status': getEditValue('edit-ord-status', 'Pending'),
@@ -2573,14 +2588,41 @@ Please provide helpful, specific advice for Mr Boot shoe laundry business.`;
         
         // Send push notification
         window.sendPushNotification = (title, body, icon = null) => {
+            if (!('Notification' in window)) {
+                console.log('Notifications not supported');
+                return;
+            }
+            
             if (Notification.permission === 'granted') {
-                new Notification(title, {
-                    body: body,
-                    icon: icon || 'https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png',
-                    badge: 'https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png',
-                    tag: 'mr-boot-notification',
-                    requireInteraction: false
-                });
+                try {
+                    // Try simple notification first (works in most contexts)
+                    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                        // If service worker available, use it
+                        navigator.serviceWorker.ready.then(registration => {
+                            registration.showNotification(title, {
+                                body: body,
+                                icon: icon || 'https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png',
+                                badge: 'https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png',
+                                tag: 'mr-boot-notification',
+                                requireInteraction: false
+                            });
+                        }).catch(err => {
+                            console.log('Service worker notification failed:', err);
+                        });
+                    } else {
+                        // Fallback to simple notification
+                        new Notification(title, {
+                            body: body,
+                            icon: icon || 'https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png',
+                            badge: 'https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png',
+                            tag: 'mr-boot-notification',
+                            requireInteraction: false
+                        });
+                    }
+                } catch(err) {
+                    console.log('Notification error:', err);
+                    // Silently fail - notifications are nice-to-have
+                }
             }
         };
         
