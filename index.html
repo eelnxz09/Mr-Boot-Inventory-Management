@@ -262,7 +262,6 @@
                 <option value="mr">मराठी</option>
             </select>
             <button onclick="window.startVoiceOrderCreation()" style="background:#E91E63; color:white; border:none; padding:6px 12px; border-radius:8px; font-size:11px; cursor:pointer; box-shadow:0 2px 8px rgba(233,30,99,0.3);">🎙️ Voice Order</button>
-            <button id="voice-btn" onclick="window.toggleVoiceCommand()" title="Voice Commands" style="background:#FF9500; color:white; border:none; padding:6px 12px; border-radius:50%; font-size:16px; cursor:pointer; box-shadow:0 2px 8px rgba(255,149,0,0.3); width:36px; height:36px; display:flex; align-items:center; justify-content:center;">🎤</button>
             <button id="ai-assistant-btn" onclick="window.openAIAssistant()" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; border:none; padding:6px 12px; border-radius:8px; font-size:11px; cursor:pointer; box-shadow:0 2px 8px rgba(102,126,234,0.3);">✨ AI Assistant</button>
             <button id="install-btn" style="display:none; background:#4E342E; color:white; border:none; padding:6px 12px; border-radius:8px; font-size:11px; cursor:pointer;">📱 Install App</button>
             <div id="db-status" style="width:8px; height:8px; border-radius:50%; background:#ccc;"></div>
@@ -325,10 +324,6 @@
             
             <button class="fab" onclick="window.openOrderModal()" style="right:80px;">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-            </button>
-            
-            <button class="fab" onclick="window.startVoiceOrder()" style="background:#FF9500;" title="Voice Order">
-                🎤
             </button>
         </section>
 
@@ -452,66 +447,72 @@
                 </div>
             </div>
             
+            <!-- ANALYTICS DASHBOARD (INSIDE REPORTS) -->
+            <div class="card" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; margin-top:16px;">
+                <h3>📊 Advanced Analytics</h3>
+                <p style="font-size:13px; opacity:0.9; margin-bottom:16px;">Complete business insights and metrics</p>
+                <button class="btn" style="background:white; color:#667eea; border:none; font-weight:bold;" onclick="window.renderAnalyticsDashboard(); document.getElementById('analytics-section').style.display='block'; this.style.display='none';">
+                    View Full Analytics Dashboard
+                </button>
+            </div>
+            
+            <div id="analytics-section" style="display:none;">
+                <!-- Metrics Cards -->
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin:16px 0;">
+                    <div class="card" style="text-align:center; padding:16px;">
+                        <div style="font-size:24px; font-weight:bold; color:#4CAF50;" id="metric-total-revenue">₹0</div>
+                        <div style="font-size:12px; color:#666; margin-top:4px;">Total Revenue</div>
+                    </div>
+                    <div class="card" style="text-align:center; padding:16px;">
+                        <div style="font-size:24px; font-weight:bold; color:#2196F3;" id="metric-revenue-growth">0%</div>
+                        <div style="font-size:12px; color:#666; margin-top:4px;">Growth</div>
+                    </div>
+                    <div class="card" style="text-align:center; padding:16px;">
+                        <div style="font-size:24px; font-weight:bold; color:#FF9800;" id="metric-avg-order">₹0</div>
+                        <div style="font-size:12px; color:#666; margin-top:4px;">Avg Order</div>
+                    </div>
+                    <div class="card" style="text-align:center; padding:16px;">
+                        <div style="font-size:24px; font-weight:bold; color:#9C27B0;" id="metric-retention">0%</div>
+                        <div style="font-size:12px; color:#666; margin-top:4px;">Retention</div>
+                    </div>
+                    <div class="card" style="text-align:center; padding:16px;">
+                        <div style="font-size:14px; font-weight:bold;" id="metric-top-service">-</div>
+                        <div style="font-size:12px; color:#666; margin-top:4px;">Top Service</div>
+                    </div>
+                    <div class="card" style="text-align:center; padding:16px;">
+                        <div style="font-size:24px; font-weight:bold; color:#F44336;" id="metric-pending">₹0</div>
+                        <div style="font-size:12px; color:#666; margin-top:4px;">Pending</div>
+                    </div>
+                </div>
+                
+                <!-- Charts -->
+                <div class="card" style="margin-bottom:20px;">
+                    <h4>Revenue Trend (Last 30 Days)</h4>
+                    <div style="height:250px; position:relative;">
+                        <canvas id="analytics-revenue-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-bottom:20px;">
+                    <h4>Service Popularity</h4>
+                    <div style="height:250px; position:relative;">
+                        <canvas id="service-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h4>Peak Hours Heatmap</h4>
+                    <p style="font-size:13px; color:#666; margin-bottom:12px;">Shows when most orders are created</p>
+                    <div id="peak-hours-heatmap"></div>
+                </div>
+            </div>
+            
             <div class="card">
                 <h3 id="text-system">System Status</h3>
                 <p style="font-size:12px; color:#666;" id="text-secure">Data is securely stored in Firebase.</p>
                 <p style="font-size:11px; color:var(--info);" id="text-network">Network: <span id="net-status">Unknown</span></p>
                 <button class="btn btn-primary" onclick="window.testConnection()" id="btn-test">Test Database Connection</button>
                 <button class="btn btn-outline" onclick="location.reload()" id="btn-refresh">Refresh App</button>
-            </div>
-        </section>
-
-        <!-- ANALYTICS DASHBOARD -->
-        <section id="view-analytics" class="view">
-            <h2 style="margin-bottom:20px;">📊 Analytics Dashboard</h2>
-            
-            <!-- Metrics Cards -->
-            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:20px;">
-                <div class="card" style="text-align:center; padding:16px;">
-                    <div style="font-size:24px; font-weight:bold; color:#4CAF50;" id="metric-total-revenue">₹0</div>
-                    <div style="font-size:12px; color:#666; margin-top:4px;">Total Revenue</div>
-                </div>
-                <div class="card" style="text-align:center; padding:16px;">
-                    <div style="font-size:24px; font-weight:bold; color:#2196F3;" id="metric-revenue-growth">0%</div>
-                    <div style="font-size:12px; color:#666; margin-top:4px;">Growth</div>
-                </div>
-                <div class="card" style="text-align:center; padding:16px;">
-                    <div style="font-size:24px; font-weight:bold; color:#FF9800;" id="metric-avg-order">₹0</div>
-                    <div style="font-size:12px; color:#666; margin-top:4px;">Avg Order</div>
-                </div>
-                <div class="card" style="text-align:center; padding:16px;">
-                    <div style="font-size:24px; font-weight:bold; color:#9C27B0;" id="metric-retention">0%</div>
-                    <div style="font-size:12px; color:#666; margin-top:4px;">Retention</div>
-                </div>
-                <div class="card" style="text-align:center; padding:16px;">
-                    <div style="font-size:14px; font-weight:bold;" id="metric-top-service">-</div>
-                    <div style="font-size:12px; color:#666; margin-top:4px;">Top Service</div>
-                </div>
-                <div class="card" style="text-align:center; padding:16px;">
-                    <div style="font-size:24px; font-weight:bold; color:#F44336;" id="metric-pending">₹0</div>
-                    <div style="font-size:12px; color:#666; margin-top:4px;">Pending</div>
-                </div>
-            </div>
-            
-            <!-- Charts -->
-            <div class="card" style="margin-bottom:20px;">
-                <h4>Revenue Trend</h4>
-                <div style="height:300px; position:relative;">
-                    <canvas id="analytics-revenue-chart"></canvas>
-                </div>
-            </div>
-            
-            <div class="card" style="margin-bottom:20px;">
-                <h4>Service Popularity</h4>
-                <div style="height:300px; position:relative;">
-                    <canvas id="service-chart"></canvas>
-                </div>
-            </div>
-            
-            <div class="card">
-                <h4>Peak Hours Heatmap</h4>
-                <p style="font-size:13px; color:#666; margin-bottom:12px;">Shows when most orders are created</p>
-                <div id="peak-hours-heatmap"></div>
             </div>
         </section>
     </main>
@@ -537,10 +538,6 @@
         <a href="#" class="nav-item" id="nav-reports" onclick="window.switchView('reports', this)">
             <svg viewBox="0 0 24 24"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg>
             <span>Reports</span>
-        </a>
-        <a href="#" class="nav-item" id="nav-analytics" onclick="window.switchView('analytics', this)">
-            <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
-            <span>Analytics</span>
         </a>
     </nav>
 
@@ -796,7 +793,7 @@
                 <label style="display:block; margin-bottom:4px; font-weight:500;">After Photo</label>
                 <input type="file" id="after-photo-upload" accept="image/*" style="width:100%;">
             </div>
-            <button class="btn btn-primary" onclick="window.createComparison(window.viewingOrderId)">
+            <button class="btn btn-primary" onclick="window.createComparison(viewingOrderId)">
                 Create Comparison
             </button>
             
@@ -880,6 +877,13 @@
         window.isSelectMode = false;
         
         let pendingCompleteId, viewingOrderId, currentServiceInput;
+        
+        // Make viewingOrderId accessible globally
+        Object.defineProperty(window, 'viewingOrderId', {
+            get: () => viewingOrderId,
+            set: (val) => { viewingOrderId = val; }
+        });
+        
         const REVIEW_LINK = "https://g.page/r/Ce0M0864Elt6EBE/review";
         const ALL_SERVICES = [
             "Standard Laundry", 
@@ -2284,15 +2288,19 @@ Your feedback helps us improve and helps others discover our service! 🙏
             const summaryHeight = 450; // Billing summary box
             const footerHeight = 300; // Footer with T&C
             
-            // HD Canvas Size (2160px width = 2x for crisp quality)
-            const width = 2160;
-            const height = baseHeight + (itemCount * itemHeight) + summaryHeight + footerHeight;
+            // 4K ULTRA HD Canvas Size (3840px width = 4K resolution for crystal clear quality)
+            const width = 3840;
+            const height = Math.round((baseHeight + (itemCount * itemHeight) + summaryHeight + footerHeight) * 1.78); // Scale height proportionally
             canvas.width = width;
             canvas.height = height;
             
-            // Enable high quality image rendering
+            // Enable maximum quality image rendering
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
+            
+            // Scale factor for all drawing operations
+            const scale = width / 2160; // Original design was for 2160px
+            ctx.scale(scale, scale);
             
             // Fill white background
             ctx.fillStyle = "white";
@@ -3137,12 +3145,12 @@ Please provide helpful, specific advice for Mr Boot shoe laundry business.`;
         window.changeLanguage = (lang) => {
             currentLanguage = lang;
             localStorage.setItem('appLanguage', lang);
-            document.querySelectorAll('[data-i18n]').forEach(el => {
-                const key = el.getAttribute('data-i18n');
-                if (translations[lang] && translations[lang][key]) {
-                    el.textContent = translations[lang][key];
-                }
-            });
+            
+            // Show notification that language is set
+            const langNames = { en: 'English', hi: 'हिंदी', mr: 'मराठी' };
+            alert(`✅ Language set to ${langNames[lang]}\n\nNote: Full translation coming in next update. Your language preference is saved!`);
+            
+            console.log('Language preference saved:', lang);
         };
         
         // FEATURE 2: BACKUP & EXPORT
@@ -3270,7 +3278,7 @@ Please provide helpful, specific advice for Mr Boot shoe laundry business.`;
                     <div style="color:#666; font-size:13px;">${o.customer.phone}</div>
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
                         <span style="font-size:16px; font-weight:bold; color:#4CAF50;">₹${o.financials.total}</span>
-                        <button onclick="window.viewOrder('${o.id}')" style="background:#4E342E; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">View</button>
+                        <button onclick="window.openViewOrder('${o.id}')" style="background:#4E342E; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer;">View</button>
                     </div>
                 `;
                 list.appendChild(card);
@@ -3559,11 +3567,16 @@ Please provide helpful, specific advice for Mr Boot shoe laundry business.`;
             }
         };
         
-        // Initialize language on load
+        // Initialize language on load - IMPORTANT: Apply saved language
         setTimeout(() => {
             const savedLang = localStorage.getItem('appLanguage') || 'en';
             const selector = document.getElementById('language-selector');
-            if (selector) selector.value = savedLang;
+            if (selector) {
+                selector.value = savedLang;
+                // Don't call changeLanguage since we don't have data-i18n attributes
+                // Language is already set in currentLanguage variable
+                console.log('✅ Language loaded:', savedLang);
+            }
         }, 1000);
         
         console.log('✅ ALL 6 MEGA FEATURES LOADED!');
