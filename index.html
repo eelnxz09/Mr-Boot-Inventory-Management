@@ -445,7 +445,18 @@
             <div class="card" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; margin-top:16px;">
                 <h3>📊 Advanced Analytics</h3>
                 <p style="font-size:13px; opacity:0.9; margin-bottom:16px;">Complete business insights and metrics</p>
-                <button class="btn" style="background:white; color:#667eea; border:none; font-weight:bold;" onclick="window.renderAnalyticsDashboard(); document.getElementById('analytics-section').style.display='block'; this.style.display='none';">
+                <button id="analytics-btn" class="btn" style="background:white; color:#667eea; border:none; font-weight:bold;" onclick="
+                    console.log('Analytics button clicked');
+                    console.log('Orders count:', window.orders ? window.orders.length : 0);
+                    const section = document.getElementById('analytics-section');
+                    if (section) {
+                        section.style.display = 'block';
+                        this.style.display = 'none';
+                        setTimeout(() => window.renderAnalyticsDashboard(), 100);
+                    } else {
+                        alert('Analytics section not found. Please refresh the page.');
+                    }
+                ">
                     View Full Analytics Dashboard
                 </button>
             </div>
@@ -3399,17 +3410,35 @@ Please provide helpful, specific advice for Mr Boot shoe laundry business.`;
         
         // FEATURE 6: ANALYTICS DASHBOARD
         window.renderAnalyticsDashboard = () => {
+            // Check if analytics section is visible
+            const analyticsSection = document.getElementById('analytics-section');
+            if (!analyticsSection) {
+                console.log('Analytics section not found');
+                return;
+            }
+            
             const metrics = calculateAnalyticsMetrics();
             
-            document.getElementById('metric-total-revenue').textContent = `₹${metrics.totalRevenue}`;
-            document.getElementById('metric-revenue-growth').textContent = `${metrics.revenueGrowth}%`;
-            document.getElementById('metric-avg-order').textContent = `₹${metrics.avgOrderValue}`;
-            document.getElementById('metric-retention').textContent = `${metrics.retentionRate}%`;
-            document.getElementById('metric-top-service').textContent = metrics.topService;
-            document.getElementById('metric-pending').textContent = `₹${metrics.pendingAmount}`;
+            // Update metrics with null checks
+            const revenueEl = document.getElementById('metric-total-revenue');
+            const growthEl = document.getElementById('metric-revenue-growth');
+            const avgOrderEl = document.getElementById('metric-avg-order');
+            const retentionEl = document.getElementById('metric-retention');
+            const topServiceEl = document.getElementById('metric-top-service');
+            const pendingEl = document.getElementById('metric-pending');
             
+            if (revenueEl) revenueEl.textContent = `₹${metrics.totalRevenue}`;
+            if (growthEl) growthEl.textContent = `${metrics.revenueGrowth}%`;
+            if (avgOrderEl) avgOrderEl.textContent = `₹${metrics.avgOrderValue}`;
+            if (retentionEl) retentionEl.textContent = `${metrics.retentionRate}%`;
+            if (topServiceEl) topServiceEl.textContent = metrics.topService;
+            if (pendingEl) pendingEl.textContent = `₹${metrics.pendingAmount}`;
+            
+            // Render charts if Chart.js is loaded
             if (typeof Chart !== 'undefined') {
                 renderAnalyticsCharts(metrics);
+            } else {
+                console.warn('Chart.js not loaded yet');
             }
         };
         
