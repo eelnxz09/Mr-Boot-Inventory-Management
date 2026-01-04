@@ -878,11 +878,14 @@
             console.log('✅ Firebase library loaded');
         }
         
+        // Declare auth and db globally
+        let auth, db;
+        
         // Initialize Firebase with compat API
         try {
             firebase.initializeApp(firebaseConfig);
-            const auth = firebase.auth();
-            const db = firebase.firestore();
+            auth = firebase.auth();
+            db = firebase.firestore();
             
             console.log('✅ Firebase initialized successfully');
             console.log('🔐 Auth object:', auth);
