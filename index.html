@@ -11,6 +11,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png">
     <title>Mr Boot Manager (Online)</title>
+    <link rel="icon" type="image/png" href="https://i.ibb.co/0RsQmNW7/Shoe-Laundry-Logo-removebg-preview.png">
     <!-- HEIC Conversion Library -->
     <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
     <!-- Chart.js for Analytics -->
@@ -306,6 +307,7 @@
             <div class="flex-row" style="overflow-x:auto; padding-bottom:8px; margin-bottom:8px; align-items:center;">
                 <button id="btn-select-mode" class="btn btn-outline" style="width:auto; margin:0; padding:6px 10px; font-size:12px;" onclick="window.toggleSelectMode()">Select</button>
                 <div style="width:1px; height:20px; background:#ddd; margin:0 5px;"></div>
+                <button class="btn" style="background:#4CAF50; color:white; border:none; width:auto; margin:0 5px 0 0; padding:6px 10px; font-size:12px;" onclick="window.filterTodaysOrders()">📅 Today</button>
                 <button class="badge" style="background:var(--primary); color:white; border:none;" onclick="window.filterOrders('All')">All</button>
                 <button class="badge bg-pending" style="border:none;" onclick="window.filterOrders('Pending')">Pending</button>
                 <button class="badge bg-ready" style="border:none;" onclick="window.filterOrders('Ready')">Ready</button>
@@ -367,16 +369,6 @@
             <!-- Advanced Analytics -->
             <div class="card" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white;">
                 <h3 id="text-analytics">📊 Advanced Analytics</h3>
-            
-            <!-- DUE TODAY ORDERS -->
-            <div class="card" style="background:linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color:white;">
-                <h3 style="margin:0 0 12px 0;">🚚 Due Today</h3>
-                <p style="font-size:13px; opacity:0.9; margin-bottom:12px;">Orders that should be delivered today</p>
-                <button class="btn" style="background:white; color:#FF6B6B; border:none; font-weight:bold; padding:10px;" onclick="window.showDueTodayOrders()">
-                    View Due Today Orders
-                </button>
-                <div id="due-today-container" style="margin-top:12px; display:none;"></div>
-            </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
                     <div style="background:rgba(255,255,255,0.2); padding:12px; border-radius:8px;">
                         <small style="opacity:0.9;" id="text-avg-order">Avg Order Value</small>
@@ -841,9 +833,6 @@
     <!-- STUB FUNCTIONS - Will be replaced when module loads -->
     <script>
         // These prevent "not a function" errors while the module loads
-        window.loginWithEmail = () => console.log('Loading...');
-        window.registerWithEmail = () => console.log('Loading...');
-        window.logout = () => console.log('Loading...');
         window.closeModal = () => {};
         window.saveGalleryItem = () => {};
     </script>
@@ -881,14 +870,36 @@
             measurementId: "G-3ZXFKPXJPQ"
         };
         
-        // Initialize Firebase with compat API
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        // Check if Firebase loaded
+        if (typeof firebase === 'undefined') {
+            alert('❌ ERROR: Firebase failed to load. Check your internet connection.');
+            console.error('Firebase library not loaded!');
+        } else {
+            console.log('✅ Firebase library loaded');
+        }
         
-        console.log('✅ Firebase initialized successfully');
-        console.log('🔐 Auth object:', auth);
-        console.log('💾 Firestore object:', db);
+        // Initialize Firebase with compat API
+        try {
+            firebase.initializeApp(firebaseConfig);
+            const auth = firebase.auth();
+            const db = firebase.firestore();
+            
+            console.log('✅ Firebase initialized successfully');
+            console.log('🔐 Auth object:', auth);
+            console.log('💾 Firestore object:', db);
+            
+            // Test auth immediately
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    console.log('✅ User already logged in:', user.email);
+                } else {
+                    console.log('⚠️ No user logged in');
+                }
+            });
+        } catch(error) {
+            console.error('❌ Firebase initialization error:', error);
+            alert('❌ Firebase initialization failed: ' + error.message);
+        }
         
         window.orders = [];
         window.inventory = [];
@@ -1174,30 +1185,115 @@ Your feedback helps us improve and helps others discover our service! 🙏
 
         // --- Auth ---
         window.loginWithEmail = async () => {
-            const email = document.getElementById('login-email').value;
-            const pass = document.getElementById('login-password').value;
-            if(!email || !pass) return alert("Enter Email and Password");
+            console.log('🔐 Login button clicked');
+            
+            const emailEl = document.getElementById('login-email');
+            const passEl = document.getElementById('login-password');
+            
+            if (!emailEl || !passEl) {
+                alert("❌ Error: Login form not found. Please refresh the page.");
+                return;
+            }
+            
+            const email = emailEl.value.trim();
+            const pass = passEl.value;
+            
+            console.log('📧 Email:', email);
+            
+            if(!email || !pass) {
+                alert("⚠️ Please enter both Email and Password");
+                return;
+            }
+            
             showLoading("Logging in...");
-            try { 
-                await auth.signInWithEmailAndPassword(email, pass);
+            console.log('🔄 Attempting login...');
+            
+            try {
+                if (!auth) {
+                    throw new Error('Firebase Auth not initialized');
+                }
+                
+                const result = await auth.signInWithEmailAndPassword(email, pass);
+                console.log('✅ Login successful:', result.user.email);
+                // Don't hide loading - auth state will handle it
             } 
             catch(e) { 
+                console.error('❌ Login error:', e);
                 hideLoading();
-                alert("Login failed: " + e.message); 
+                
+                let errorMsg = "Login failed: ";
+                if (e.code === 'auth/user-not-found') {
+                    errorMsg += "No account found with this email. Please register first.";
+                } else if (e.code === 'auth/wrong-password') {
+                    errorMsg += "Incorrect password. Please try again.";
+                } else if (e.code === 'auth/invalid-email') {
+                    errorMsg += "Invalid email format.";
+                } else if (e.code === 'auth/network-request-failed') {
+                    errorMsg += "Network error. Check your internet connection.";
+                } else {
+                    errorMsg += e.message;
+                }
+                
+                alert(errorMsg);
             }
         };
 
         window.registerWithEmail = async () => {
-            const email = document.getElementById('login-email').value;
-            const pass = document.getElementById('login-password').value;
-            if(!email || !pass) return alert("Enter Email and Password to create account");
+            console.log('📝 Register button clicked');
+            
+            const emailEl = document.getElementById('login-email');
+            const passEl = document.getElementById('login-password');
+            
+            if (!emailEl || !passEl) {
+                alert("❌ Error: Registration form not found. Please refresh the page.");
+                return;
+            }
+            
+            const email = emailEl.value.trim();
+            const pass = passEl.value;
+            
+            console.log('📧 Registering email:', email);
+            
+            if(!email || !pass) {
+                alert("⚠️ Please enter both Email and Password to create account");
+                return;
+            }
+            
+            if(pass.length < 6) {
+                alert("⚠️ Password must be at least 6 characters long");
+                return;
+            }
+            
             showLoading("Creating Account...");
+            console.log('🔄 Attempting registration...');
+            
             try {
-                await auth.createUserWithEmailAndPassword(email, pass);
-                alert("Account Created! You are now logged in.");
+                if (!auth) {
+                    throw new Error('Firebase Auth not initialized');
+                }
+                
+                const result = await auth.createUserWithEmailAndPassword(email, pass);
+                console.log('✅ Account created:', result.user.email);
+                alert("✅ Account Created! You are now logged in.");
+                // Don't hide loading - auth state will handle it
             } catch(e) {
+                console.error('❌ Registration error:', e);
                 hideLoading();
-                alert("Registration failed: " + e.message);
+                
+                let errorMsg = "Registration failed: ";
+                if (e.code === 'auth/email-already-in-use') {
+                    errorMsg += "This email is already registered. Please login instead.";
+                } else if (e.code === 'auth/invalid-email') {
+                    errorMsg += "Invalid email format.";
+                } else if (e.code === 'auth/weak-password') {
+                    errorMsg += "Password is too weak. Use at least 6 characters.";
+                } else if (e.code === 'auth/network-request-failed') {
+                    errorMsg += "Network error. Check your internet connection.";
+                } else {
+                    errorMsg += e.message;
+                }
+                
+                alert(errorMsg);
             }
         };
 
@@ -1893,15 +1989,9 @@ Your feedback helps us improve and helps others discover our service! 🙏
                 if(o.delivery && o.delivery.porterCost) prof -= o.delivery.porterCost;
             });
             prof += rev;
-            
-            // Add null checks before setting innerText
-            const revEl = document.getElementById('rep-revenue');
-            const pendEl = document.getElementById('rep-pending');
-            const profEl = document.getElementById('rep-profit');
-            
-            if (revEl) revEl.innerText = rev;
-            if (pendEl) pendEl.innerText = pend;
-            if (profEl) profEl.innerText = prof;
+            document.getElementById('rep-revenue').innerText = rev;
+            document.getElementById('rep-pending').innerText = pend;
+            document.getElementById('rep-profit').innerText = prof;
             
             // Render daily revenue calendar
             window.renderDailyRevenue();
@@ -3611,51 +3701,48 @@ Please provide helpful, specific advice for Mr Boot shoe laundry business.`;
         console.log('✅ ALL 6 MEGA FEATURES LOADED!');
         
         // ===== TODAY'S ORDERS FILTER =====
-            if (!dateStr) return;
-        
-        // ===== SHOW ORDERS DUE TODAY (DELIVERY DATE = TODAY) =====
-        window.showDueTodayOrders = () => {
-            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-            const dueToday = window.orders.filter(o => o.deliveryDate === today && o.status !== 'Completed');
+        window.filterTodaysOrders = () => {
+            const today = new Date().toLocaleDateString();
+            const todayOrders = window.orders.filter(o => o.date === today);
             
-            const container = document.getElementById('due-today-container');
-            if (!container) return;
+            const list = document.getElementById('orders-list');
+            if (!list) return;
             
-            // Show container
-            container.style.display = 'block';
+            list.innerHTML = '';
             
-            if (dueToday.length === 0) {
-                container.innerHTML = '<div style="background:rgba(255,255,255,0.2); padding:20px; border-radius:8px; text-align:center; margin-top:12px;"><p style="margin:0;">✅ No orders due today!</p><p style="font-size:12px; opacity:0.8; margin-top:4px;">All caught up!</p></div>';
+            if (todayOrders.length === 0) {
+                list.innerHTML = '<div class="card" style="text-align:center; padding:40px;"><h3>📅 No Orders Today</h3><p style="color:#999;">No orders created today yet</p></div>';
                 return;
             }
             
-            let html = '<div style="background:rgba(255,255,255,0.15); padding:16px; border-radius:8px; margin-top:12px;">';
-            html += `<h4 style="margin:0 0 12px 0;">⚠️ ${dueToday.length} Order(s) Due for Delivery Today</h4>`;
+            list.innerHTML = `<div class="card" style="background:#4CAF50; color:white; text-align:center; margin-bottom:16px;"><h3>📅 Today's Orders (${todayOrders.length})</h3><p style="font-size:14px; opacity:0.9;">${today}</p></div>`;
             
-            dueToday.forEach(o => {
-                const itemsText = o.items ? o.items.map(i => `${i.brand || ''} ${i.type}`.trim()).join(', ') : '';
-                const statusColor = o.status === 'Ready' ? '#4CAF50' : '#FF9800';
+            todayOrders.forEach(o => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = () => window.openViewOrder(o.id);
+                card.style.cursor = 'pointer';
                 
-                html += `
-                    <div style="background:white; color:#333; border-radius:8px; padding:12px; margin-bottom:10px; cursor:pointer;" 
-                         onclick="window.switchView('orders', document.querySelectorAll('.nav-item')[0]); setTimeout(() => window.openViewOrder('${o.id}'), 300);">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-                            <strong style="font-size:15px;">#${o.seqId} - ${o.customer.name}</strong>
-                            <span style="background:${statusColor}; color:white; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:bold;">${o.status}</span>
-                        </div>
-                        <div style="color:#666; font-size:12px; margin-bottom:4px;">📞 ${o.customer.phone}</div>
-                        <div style="color:#555; font-size:13px; margin-bottom:6px;">${itemsText}</div>
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <span style="font-size:11px; color:#888;">Balance: ₹${o.financials.balance}</span>
-                            <span style="font-size:12px; font-weight:bold; color:#FF6B6B;">📅 Due: ${o.deliveryDate}</span>
-                        </div>
+                const itemsText = o.items ? o.items.map(i => i.type).join(', ') : '';
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <span class="badge" style="background:#eee;">#${o.seqId}</span>
+                        <span style="font-size:12px; color:#888;">${o.date}</span>
+                    </div>
+                    <div style="font-weight:bold; font-size:16px;">${o.customer.name}</div>
+                    <div style="font-size:14px; color:#555; margin:4px 0;">${itemsText}</div>
+                    <div style="display:flex; justify-content:space-between; margin-top:8px;">
+                        <span class="badge ${o.status === 'Completed' ? 'bg-completed' : (o.status === 'Ready' ? 'bg-ready' : 'bg-pending')}">${o.status}</span>
+                        <span style="font-weight:bold; color:${o.financials.balance > 0 ? 'var(--danger)' : 'var(--success)'}">₹${o.financials.total}</span>
                     </div>
                 `;
+                list.appendChild(card);
             });
-            
-            html += '</div>';
-            container.innerHTML = html;
         };
+        
+        // ===== SHOW ORDERS BY SPECIFIC DATE =====
+        window.showOrdersByDate = (dateStr) => {
+            if (!dateStr) return;
             
             const selectedDate = new Date(dateStr).toLocaleDateString();
             const dateOrders = window.orders.filter(o => o.date === selectedDate);
