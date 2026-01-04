@@ -306,7 +306,6 @@
             <div class="flex-row" style="overflow-x:auto; padding-bottom:8px; margin-bottom:8px; align-items:center;">
                 <button id="btn-select-mode" class="btn btn-outline" style="width:auto; margin:0; padding:6px 10px; font-size:12px;" onclick="window.toggleSelectMode()">Select</button>
                 <div style="width:1px; height:20px; background:#ddd; margin:0 5px;"></div>
-                <button class="btn" style="background:#4CAF50; color:white; border:none; width:auto; margin:0 5px 0 0; padding:6px 10px; font-size:12px;" onclick="window.filterTodaysOrders()">📅 Today</button>
                 <button class="badge" style="background:var(--primary); color:white; border:none;" onclick="window.filterOrders('All')">All</button>
                 <button class="badge bg-pending" style="border:none;" onclick="window.filterOrders('Pending')">Pending</button>
                 <button class="badge bg-ready" style="border:none;" onclick="window.filterOrders('Ready')">Ready</button>
@@ -368,6 +367,16 @@
             <!-- Advanced Analytics -->
             <div class="card" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white;">
                 <h3 id="text-analytics">📊 Advanced Analytics</h3>
+            
+            <!-- DUE TODAY ORDERS -->
+            <div class="card" style="background:linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); color:white;">
+                <h3 style="margin:0 0 12px 0;">🚚 Due Today</h3>
+                <p style="font-size:13px; opacity:0.9; margin-bottom:12px;">Orders that should be delivered today</p>
+                <button class="btn" style="background:white; color:#FF6B6B; border:none; font-weight:bold; padding:10px;" onclick="window.showDueTodayOrders()">
+                    View Due Today Orders
+                </button>
+                <div id="due-today-container" style="margin-top:12px; display:none;"></div>
+            </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
                     <div style="background:rgba(255,255,255,0.2); padding:12px; border-radius:8px;">
                         <small style="opacity:0.9;" id="text-avg-order">Avg Order Value</small>
@@ -1884,9 +1893,15 @@ Your feedback helps us improve and helps others discover our service! 🙏
                 if(o.delivery && o.delivery.porterCost) prof -= o.delivery.porterCost;
             });
             prof += rev;
-            document.getElementById('rep-revenue').innerText = rev;
-            document.getElementById('rep-pending').innerText = pend;
-            document.getElementById('rep-profit').innerText = prof;
+            
+            // Add null checks before setting innerText
+            const revEl = document.getElementById('rep-revenue');
+            const pendEl = document.getElementById('rep-pending');
+            const profEl = document.getElementById('rep-profit');
+            
+            if (revEl) revEl.innerText = rev;
+            if (pendEl) pendEl.innerText = pend;
+            if (profEl) profEl.innerText = prof;
             
             // Render daily revenue calendar
             window.renderDailyRevenue();
@@ -3596,48 +3611,51 @@ Please provide helpful, specific advice for Mr Boot shoe laundry business.`;
         console.log('✅ ALL 6 MEGA FEATURES LOADED!');
         
         // ===== TODAY'S ORDERS FILTER =====
-        window.filterTodaysOrders = () => {
-            const today = new Date().toLocaleDateString();
-            const todayOrders = window.orders.filter(o => o.date === today);
+            if (!dateStr) return;
+        
+        // ===== SHOW ORDERS DUE TODAY (DELIVERY DATE = TODAY) =====
+        window.showDueTodayOrders = () => {
+            const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+            const dueToday = window.orders.filter(o => o.deliveryDate === today && o.status !== 'Completed');
             
-            const list = document.getElementById('orders-list');
-            if (!list) return;
+            const container = document.getElementById('due-today-container');
+            if (!container) return;
             
-            list.innerHTML = '';
+            // Show container
+            container.style.display = 'block';
             
-            if (todayOrders.length === 0) {
-                list.innerHTML = '<div class="card" style="text-align:center; padding:40px;"><h3>📅 No Orders Today</h3><p style="color:#999;">No orders created today yet</p></div>';
+            if (dueToday.length === 0) {
+                container.innerHTML = '<div style="background:rgba(255,255,255,0.2); padding:20px; border-radius:8px; text-align:center; margin-top:12px;"><p style="margin:0;">✅ No orders due today!</p><p style="font-size:12px; opacity:0.8; margin-top:4px;">All caught up!</p></div>';
                 return;
             }
             
-            list.innerHTML = `<div class="card" style="background:#4CAF50; color:white; text-align:center; margin-bottom:16px;"><h3>📅 Today'\''s Orders (${todayOrders.length})</h3><p style="font-size:14px; opacity:0.9;">${today}</p></div>`;
+            let html = '<div style="background:rgba(255,255,255,0.15); padding:16px; border-radius:8px; margin-top:12px;">';
+            html += `<h4 style="margin:0 0 12px 0;">⚠️ ${dueToday.length} Order(s) Due for Delivery Today</h4>`;
             
-            todayOrders.forEach(o => {
-                const card = document.createElement('div');
-                card.className = 'card';
-                card.onclick = () => window.openViewOrder(o.id);
-                card.style.cursor = 'pointer';
+            dueToday.forEach(o => {
+                const itemsText = o.items ? o.items.map(i => `${i.brand || ''} ${i.type}`.trim()).join(', ') : '';
+                const statusColor = o.status === 'Ready' ? '#4CAF50' : '#FF9800';
                 
-                const itemsText = o.items ? o.items.map(i => i.type).join(', ') : '';
-                card.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                        <span class="badge" style="background:#eee;">#${o.seqId}</span>
-                        <span style="font-size:12px; color:#888;">${o.date}</span>
-                    </div>
-                    <div style="font-weight:bold; font-size:16px;">${o.customer.name}</div>
-                    <div style="font-size:14px; color:#555; margin:4px 0;">${itemsText}</div>
-                    <div style="display:flex; justify-content:space-between; margin-top:8px;">
-                        <span class="badge ${o.status === 'Completed' ? 'bg-completed' : (o.status === 'Ready' ? 'bg-ready' : 'bg-pending')}">${o.status}</span>
-                        <span style="font-weight:bold; color:${o.financials.balance > 0 ? 'var(--danger)' : 'var(--success)'}">₹${o.financials.total}</span>
+                html += `
+                    <div style="background:white; color:#333; border-radius:8px; padding:12px; margin-bottom:10px; cursor:pointer;" 
+                         onclick="window.switchView('orders', document.querySelectorAll('.nav-item')[0]); setTimeout(() => window.openViewOrder('${o.id}'), 300);">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <strong style="font-size:15px;">#${o.seqId} - ${o.customer.name}</strong>
+                            <span style="background:${statusColor}; color:white; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:bold;">${o.status}</span>
+                        </div>
+                        <div style="color:#666; font-size:12px; margin-bottom:4px;">📞 ${o.customer.phone}</div>
+                        <div style="color:#555; font-size:13px; margin-bottom:6px;">${itemsText}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size:11px; color:#888;">Balance: ₹${o.financials.balance}</span>
+                            <span style="font-size:12px; font-weight:bold; color:#FF6B6B;">📅 Due: ${o.deliveryDate}</span>
+                        </div>
                     </div>
                 `;
-                list.appendChild(card);
             });
+            
+            html += '</div>';
+            container.innerHTML = html;
         };
-        
-        // ===== SHOW ORDERS BY SPECIFIC DATE =====
-        window.showOrdersByDate = (dateStr) => {
-            if (!dateStr) return;
             
             const selectedDate = new Date(dateStr).toLocaleDateString();
             const dateOrders = window.orders.filter(o => o.date === selectedDate);
