@@ -287,8 +287,6 @@
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
                     <input type="text" id="adv-search-phone" placeholder="Phone number" style="padding:8px; border:1px solid #ddd; border-radius:6px;">
                     <input type="text" id="adv-search-name" placeholder="Customer name" style="padding:8px; border:1px solid #ddd; border-radius:6px;">
-                    <input type="date" id="adv-search-date-from" placeholder="From date" style="padding:8px; border:1px solid #ddd; border-radius:6px;">
-                    <input type="date" id="adv-search-date-to" placeholder="To date" style="padding:8px; border:1px solid #ddd; border-radius:6px;">
                     <input type="number" id="adv-search-amount-min" placeholder="Min amount ₹" style="padding:8px; border:1px solid #ddd; border-radius:6px;">
                     <input type="number" id="adv-search-amount-max" placeholder="Max amount ₹" style="padding:8px; border:1px solid #ddd; border-radius:6px;">
                 </div>
@@ -308,6 +306,7 @@
             <div class="flex-row" style="overflow-x:auto; padding-bottom:8px; margin-bottom:8px; align-items:center;">
                 <button id="btn-select-mode" class="btn btn-outline" style="width:auto; margin:0; padding:6px 10px; font-size:12px;" onclick="window.toggleSelectMode()">Select</button>
                 <div style="width:1px; height:20px; background:#ddd; margin:0 5px;"></div>
+                <button class="btn" style="background:#4CAF50; color:white; border:none; width:auto; margin:0 5px 0 0; padding:6px 10px; font-size:12px;" onclick="window.filterTodaysOrders()">📅 Today</button>
                 <button class="badge" style="background:var(--primary); color:white; border:none;" onclick="window.filterOrders('All')">All</button>
                 <button class="badge bg-pending" style="border:none;" onclick="window.filterOrders('Pending')">Pending</button>
                 <button class="badge bg-ready" style="border:none;" onclick="window.filterOrders('Ready')">Ready</button>
@@ -420,6 +419,14 @@
             <div class="card" style="background:#E8F5E9; border-left:4px solid #4CAF50;">
                 <h3 style="color:#2E7D32;" id="text-backup">💾 Backup & Restore</h3>
                 <p style="font-size:13px; color:#666;" id="text-backup-desc">Protect your data with automatic backups</p>
+            
+            <!-- DATE PICKER FOR ORDERS BY DATE -->
+            <div class="card" style="background:#E3F2FD; border-left:4px solid #2196F3;">
+                <h3 style="color:#1976D2;">📆 View Orders by Date</h3>
+                <p style="font-size:13px; color:#666;">Select any date to see all orders from that day</p>
+                <input type="date" id="date-picker-orders" style="width:100%; margin-bottom:12px; padding:10px; border:2px solid #2196F3; border-radius:8px;" onchange="window.showOrdersByDate(this.value)">
+                <div id="date-orders-container" style="min-height:50px;"></div>
+            </div>
                 <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
                     <button class="btn" style="background:#4CAF50; color:white;" onclick="window.backupToGoogleDrive()" id="btn-backup">📤 Backup to Google Drive</button>
                     <button class="btn btn-outline" onclick="window.exportAllData()" id="btn-export">📊 Export to Excel</button>
@@ -1583,7 +1590,7 @@ Your feedback helps us improve and helps others discover our service! 🙏
             } else {
                 actions.innerHTML = `
                     <button class="btn btn-whatsapp" onclick="window.requestReview('${o.id}')">⭐ Ask Review</button>
-                    <button class="btn" onclick="window.createBeforeAfterComparison('${o.id}')" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; border:none; padding:10px 16px; font-size:14px;">📸 Before/After</button>
+                    <button class="btn" onclick="document.getElementById("comparison-modal").classList.add("open"); viewingOrderId = ('${o.id}')" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white; border:none; padding:10px 16px; font-size:14px;">📸 Before/After</button>
                     <button class="btn" onclick="window.undoStatus('${o.id}', 'Ready')" style="background:#FF9500; color:white; border:none; margin-left:auto; padding:10px 16px; font-size:14px;">↩️ Undo to Ready</button>
                 `;
             }
@@ -3587,6 +3594,93 @@ Please provide helpful, specific advice for Mr Boot shoe laundry business.`;
         }, 1000);
         
         console.log('✅ ALL 6 MEGA FEATURES LOADED!');
+        
+        // ===== TODAY'S ORDERS FILTER =====
+        window.filterTodaysOrders = () => {
+            const today = new Date().toLocaleDateString();
+            const todayOrders = window.orders.filter(o => o.date === today);
+            
+            const list = document.getElementById('orders-list');
+            if (!list) return;
+            
+            list.innerHTML = '';
+            
+            if (todayOrders.length === 0) {
+                list.innerHTML = '<div class="card" style="text-align:center; padding:40px;"><h3>📅 No Orders Today</h3><p style="color:#999;">No orders created today yet</p></div>';
+                return;
+            }
+            
+            list.innerHTML = `<div class="card" style="background:#4CAF50; color:white; text-align:center; margin-bottom:16px;"><h3>📅 Today'\''s Orders (${todayOrders.length})</h3><p style="font-size:14px; opacity:0.9;">${today}</p></div>`;
+            
+            todayOrders.forEach(o => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.onclick = () => window.openViewOrder(o.id);
+                card.style.cursor = 'pointer';
+                
+                const itemsText = o.items ? o.items.map(i => i.type).join(', ') : '';
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <span class="badge" style="background:#eee;">#${o.seqId}</span>
+                        <span style="font-size:12px; color:#888;">${o.date}</span>
+                    </div>
+                    <div style="font-weight:bold; font-size:16px;">${o.customer.name}</div>
+                    <div style="font-size:14px; color:#555; margin:4px 0;">${itemsText}</div>
+                    <div style="display:flex; justify-content:space-between; margin-top:8px;">
+                        <span class="badge ${o.status === 'Completed' ? 'bg-completed' : (o.status === 'Ready' ? 'bg-ready' : 'bg-pending')}">${o.status}</span>
+                        <span style="font-weight:bold; color:${o.financials.balance > 0 ? 'var(--danger)' : 'var(--success)'}">₹${o.financials.total}</span>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        };
+        
+        // ===== SHOW ORDERS BY SPECIFIC DATE =====
+        window.showOrdersByDate = (dateStr) => {
+            if (!dateStr) return;
+            
+            const selectedDate = new Date(dateStr).toLocaleDateString();
+            const dateOrders = window.orders.filter(o => o.date === selectedDate);
+            
+            const container = document.getElementById('date-orders-container');
+            if (!container) return;
+            
+            if (dateOrders.length === 0) {
+                container.innerHTML = '<p style="color:#999; text-align:center; padding:20px;">📭 No orders found for this date</p>';
+                return;
+            }
+            
+            let html = `<div style="background:white; padding:16px; border-radius:8px; margin-top:12px;">`;
+            html += `<h4 style="margin:0 0 16px 0; color:#1976D2;">Found ${dateOrders.length} order(s) on ${selectedDate}</h4>`;
+            
+            dateOrders.forEach(o => {
+                const itemsText = o.items ? o.items.map(i => `${i.brand || ''} ${i.type}`.trim()).join(', ') : '';
+                const statusColor = o.status === 'Completed' ? '#4CAF50' : o.status === 'Ready' ? '#2196F3' : '#FF9800';
+                
+                html += `
+                    <div style="border:1px solid #E0E0E0; border-radius:8px; padding:12px; margin-bottom:12px; cursor:pointer; transition:box-shadow 0.2s;" 
+                         onclick="window.switchView('\''orders'\'', document.querySelectorAll('\''.nav-item'\'')[0]); setTimeout(() => window.openViewOrder('\''${o.id}'\''), 300);"
+                         onmouseover="this.style.boxShadow='\''0 4px 12px rgba(0,0,0,0.1)'\''"
+                         onmouseout="this.style.boxShadow='\''none'\''">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                            <div>
+                                <strong style="font-size:16px;">#${o.seqId} - ${o.customer.name}</strong>
+                                <div style="color:#666; font-size:12px; margin-top:2px;">📞 ${o.customer.phone}</div>
+                            </div>
+                            <span style="background:${statusColor}; color:white; padding:4px 10px; border-radius:6px; font-size:11px; font-weight:bold;">${o.status}</span>
+                        </div>
+                        <div style="color:#666; font-size:13px; margin:8px 0; line-height:1.4;">${itemsText || 'No items listed'}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                            <span style="font-size:12px; color:#888;">Due: ${o.deliveryDate || 'Not set'}</span>
+                            <span style="font-weight:bold; font-size:18px; color:#4CAF50;">₹${o.financials.total}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+        };
         
         // ===== SERVICE WORKER REGISTRATION =====
         if ('serviceWorker' in navigator) {
