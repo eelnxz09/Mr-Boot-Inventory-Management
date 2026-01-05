@@ -3845,9 +3845,9 @@ Please provide helpful, specific advice for Mr Boot shoe laundry business.`;
                 
                 html += `
                     <div style="border:1px solid #E0E0E0; border-radius:8px; padding:12px; margin-bottom:12px; cursor:pointer; transition:box-shadow 0.2s;" 
-                         onclick="window.switchView('\''orders'\'', document.querySelectorAll('\''.nav-item'\'')[0]); setTimeout(() => window.openViewOrder('\''${o.id}'\''), 300);"
-                         onmouseover="this.style.boxShadow='\''0 4px 12px rgba(0,0,0,0.1)'\''"
-                         onmouseout="this.style.boxShadow='\''none'\''">
+                         onclick="window.switchView('orders', document.querySelectorAll('.nav-item')[0]); setTimeout(() => window.openViewOrder('${o.id}'), 300);"
+                         onmouseover="this.style.boxShadow='0 4px 12px rgba(0,0,0,0.1)'"
+                         onmouseout="this.style.boxShadow='none'">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                             <div>
                                 <strong style="font-size:16px;">#${o.seqId} - ${o.customer.name}</strong>
