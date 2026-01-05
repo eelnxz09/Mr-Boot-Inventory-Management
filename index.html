@@ -1173,10 +1173,15 @@ Your feedback helps us improve and helps others discover our service! 🙏
 
         // --- Loader ---
         const showLoading = (msg) => {
-            document.getElementById('loading-text').innerText = msg;
-            document.getElementById('loading-overlay').classList.remove('hidden');
+            const loadingText = document.getElementById('loading-text');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingText) loadingText.innerText = msg;
+            if (loadingOverlay) loadingOverlay.classList.remove('hidden');
         };
-        const hideLoading = () => document.getElementById('loading-overlay').classList.add('hidden');
+        const hideLoading = () => {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) loadingOverlay.classList.add('hidden');
+        };
         
         // Network Check
         const updateNetworkStatus = () => {
@@ -1322,10 +1327,19 @@ Your feedback helps us improve and helps others discover our service! 🙏
             console.log('🔄 Auth state changed:', user ? user.email : 'No user');
             if(user) { 
                 console.log('✅ User logged in:', user.email);
-                document.getElementById('login-screen').classList.add('hidden'); 
-                document.getElementById('db-status').style.background = '#34C759'; 
-                document.getElementById('user-email-display').innerText = user.email;
-                if(document.getElementById('sync-status')) document.getElementById('sync-status').innerText = "Logged In";
+                
+                const loginScreen = document.getElementById('login-screen');
+                const dbStatus = document.getElementById('db-status');
+                
+                if (loginScreen) loginScreen.classList.add('hidden');
+                if (dbStatus) dbStatus.style.background = '#34C759'; 
+                
+                const emailDisplay = document.getElementById('user-email-display');
+                if (emailDisplay) emailDisplay.innerText = user.email;
+                
+                const syncStatus = document.getElementById('sync-status');
+                if (syncStatus) syncStatus.innerText = "Logged In";
+                
                 updateNetworkStatus();
                 hideLoading();
                 
@@ -1353,7 +1367,8 @@ Your feedback helps us improve and helps others discover our service! 🙏
                 }); 
             } else {
                 console.log('⚠️ No user - showing login screen');
-                document.getElementById('login-screen').classList.remove('hidden');
+                const loginScreen = document.getElementById('login-screen');
+                if (loginScreen) loginScreen.classList.remove('hidden');
                 hideLoading();
             }
         });
@@ -1630,7 +1645,16 @@ Your feedback helps us improve and helps others discover our service! 🙏
             const today = new Date().toISOString().split('T')[0];
             const due = window.orders.filter(o => o.deliveryDate === today && o.status !== 'Completed').length;
             const alert = document.getElementById('delivery-alert');
-            if(due > 0) { alert.classList.remove('hidden'); document.getElementById('delivery-count').innerText = due; } else alert.classList.add('hidden');
+            const deliveryCount = document.getElementById('delivery-count');
+            
+            if (alert && deliveryCount) {
+                if(due > 0) { 
+                    alert.classList.remove('hidden'); 
+                    deliveryCount.innerText = due; 
+                } else {
+                    alert.classList.add('hidden');
+                }
+            }
 
             filtered.forEach(o => {
                 const isSelected = window.selectedOrders.has(o.id);
@@ -1702,7 +1726,8 @@ Your feedback helps us improve and helps others discover our service! 🙏
                     <button class="btn" onclick="window.undoStatus('${o.id}', 'Ready')" style="background:#FF9500; color:white; border:none; margin-left:auto; padding:10px 16px; font-size:14px;">↩️ Undo to Ready</button>
                 `;
             }
-            document.getElementById('modal-view-order').classList.add('open');
+            const modal = document.getElementById('modal-view-order');
+            if (modal) modal.classList.add('open');
         };
 
         window.updateStatus = async (id, status) => {
@@ -1756,7 +1781,9 @@ Your feedback helps us improve and helps others discover our service! 🙏
         };
 
         window.initiateCompleteOrder = (id) => {
-            pendingCompleteId = id; document.getElementById('modal-proof').classList.add('open');
+            pendingCompleteId = id;
+            const modal = document.getElementById('modal-proof');
+            if (modal) modal.classList.add('open');
         }
 
         window.saveProofAndComplete = async () => {
@@ -1819,18 +1846,34 @@ Your feedback helps us improve and helps others discover our service! 🙏
 
         window.switchView = (id, el) => {
             document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById('view-'+id).classList.add('active');
+            const viewEl = document.getElementById('view-'+id);
+            if (viewEl) viewEl.classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             if(el) el.classList.add('active');
             if(id === 'orders') window.renderOrders(); if(id === 'customers') window.renderCustomers(); if(id === 'inventory') window.renderInventory(); 
             if(id === 'reports') window.renderReports(); if(id === 'gallery') window.renderGallery();
         };
-        window.closeModal = (id) => document.getElementById(id).classList.remove('open');
-        window.openOrderModal = () => { document.getElementById('order-form').reset(); document.getElementById('order-items-container').innerHTML = ''; window.addOrderItem(); document.getElementById('modal-order').classList.add('open'); }
+        window.closeModal = (id) => {
+            const modal = document.getElementById(id);
+            if (modal) modal.classList.remove('open');
+        };
+        window.openOrderModal = () => { 
+            const form = document.getElementById('order-form');
+            const container = document.getElementById('order-items-container');
+            const modal = document.getElementById('modal-order');
+            
+            if (form) form.reset();
+            if (container) container.innerHTML = '';
+            window.addOrderItem();
+            if (modal) modal.classList.add('open');
+        }
         window.addOrderItem = () => {
+            const container = document.getElementById('order-items-container');
+            if (!container) return;
+            
             const div = document.createElement('div'); div.className = 'item-row';
             div.innerHTML = `<button type="button" class="remove-item" onclick="this.parentElement.remove(); window.calcBalance();">&times;</button><div class="flex-row"><input type="text" class="item-brand" placeholder="Brand"><select class="item-type" onchange="window.handleProductTypeChange(this)"><option>Sneaker</option><option>Sport Shoe</option><option>Formal Shoe</option><option>Boots</option><option>Heels</option><option>Sandals</option><option>Loafers</option><option>Slippers</option><option>Bags</option><option>Handbag</option><option>Backpack</option><option>Jacket</option><option>Leather Jacket</option><option>Suede Shoes</option><option>Canvas Shoes</option><option>Running Shoes</option><option>Trekking Shoes</option><option>School Shoes</option><option>Safety Shoes</option><option>Other</option></select><input type="text" class="item-type-other" placeholder="Specify product type" style="display:none; margin-top:5px;"></div><input type="text" class="item-service" placeholder="Select Services" readonly onclick="window.openServiceSelector(this)" style="cursor:pointer; background:white;"><div class="flex-row"><input type="text" class="item-specs" placeholder="Specs"><input type="number" class="item-price" placeholder="Price" oninput="window.calcBalance()"></div>`;
-            document.getElementById('order-items-container').appendChild(div);
+            container.appendChild(div);
         }
         
         // Handle "Other" selection for product type
@@ -1992,9 +2035,15 @@ Your feedback helps us improve and helps others discover our service! 🙏
                 if(o.delivery && o.delivery.porterCost) prof -= o.delivery.porterCost;
             });
             prof += rev;
-            document.getElementById('rep-revenue').innerText = rev;
-            document.getElementById('rep-pending').innerText = pend;
-            document.getElementById('rep-profit').innerText = prof;
+            
+            // Add null checks before setting innerText
+            const revEl = document.getElementById('rep-revenue');
+            const pendEl = document.getElementById('rep-pending');
+            const profEl = document.getElementById('rep-profit');
+            
+            if (revEl) revEl.innerText = rev;
+            if (pendEl) pendEl.innerText = pend;
+            if (profEl) profEl.innerText = prof;
             
             // Render daily revenue calendar
             window.renderDailyRevenue();
