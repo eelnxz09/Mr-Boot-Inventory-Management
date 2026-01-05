@@ -366,48 +366,6 @@
                 <p><span id="text-profit">Profit (Net)</span>: <b id="rep-profit" style="color:var(--success)">0</b></p>
             </div>
             
-            <!-- Advanced Analytics -->
-            <div class="card" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:white;">
-                <h3 id="text-analytics">📊 Advanced Analytics</h3>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
-                    <div style="background:rgba(255,255,255,0.2); padding:12px; border-radius:8px;">
-                        <small style="opacity:0.9;" id="text-avg-order">Avg Order Value</small>
-                        <h2 style="margin:8px 0 0 0;">₹<span id="avg-order-value">0</span></h2>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.2); padding:12px; border-radius:8px;">
-                        <small style="opacity:0.9;" id="text-total-orders">Total Orders</small>
-                        <h2 style="margin:8px 0 0 0;"><span id="total-orders-count">0</span></h2>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.2); padding:12px; border-radius:8px;">
-                        <small style="opacity:0.9;" id="text-completion-rate">Completion Rate</small>
-                        <h2 style="margin:8px 0 0 0;"><span id="completion-rate">0</span>%</h2>
-                    </div>
-                    <div style="background:rgba(255,255,255,0.2); padding:12px; border-radius:8px;">
-                        <small style="opacity:0.9;" id="text-retention-rate">Retention Rate</small>
-                        <h2 style="margin:8px 0 0 0;"><span id="retention-rate">0</span>%</h2>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Revenue Trends -->
-            <div class="card">
-                <h3 id="text-revenue-trend">📈 Revenue Trend (Last 30 Days)</h3>
-                <canvas id="revenue-chart" style="max-height:250px;"></canvas>
-            </div>
-            
-            <!-- Most Profitable Services -->
-            <div class="card">
-                <h3 id="text-top-services">🏆 Top 5 Services by Revenue</h3>
-                <div id="top-services-container"></div>
-            </div>
-            
-            <!-- Peak Hours -->
-            <div class="card">
-                <h3 id="text-peak-hours">⏰ Peak Hours Heatmap</h3>
-                <p style="font-size:12px; color:#666;" id="text-peak-desc">Orders by hour of day</p>
-                <div id="peak-hours-container" style="margin-top:12px;"></div>
-            </div>
-            
             <div class="card">
                 <h3 id="text-daily-calendar">📅 Daily Revenue Calendar</h3>
                 <p style="font-size:14px; color:#666;" id="text-last-7-days">Last 7 days earnings breakdown</p>
@@ -424,7 +382,19 @@
             <!-- DATE PICKER FOR ORDERS BY DATE -->
             <div class="card" style="background:#E3F2FD; border-left:4px solid #2196F3;">
                 <h3 style="color:#1976D2;">📆 View Orders by Date</h3>
-                <p style="font-size:13px; color:#666;">Select any date to see all orders from that day</p>
+                
+                <!-- Toggle between Order Date and Delivery Date -->
+                <div style="display:flex; gap:8px; margin-bottom:12px; background:#fff; padding:4px; border-radius:8px;">
+                    <button id="btn-order-date" class="btn" style="flex:1; background:#2196F3; color:white; border:none; padding:8px;" onclick="window.switchDateFilter('order')">
+                        📋 Order Date
+                    </button>
+                    <button id="btn-delivery-date" class="btn" style="flex:1; background:#E3F2FD; color:#1976D2; border:1px solid #2196F3; padding:8px;" onclick="window.switchDateFilter('delivery')">
+                        🚚 Delivery Date
+                    </button>
+                </div>
+                
+                <p id="date-filter-desc" style="font-size:13px; color:#666; margin-bottom:12px;">Select any date to see all orders placed on that day</p>
+                
                 <input type="date" id="date-picker-orders" style="width:100%; margin-bottom:12px; padding:10px; border:2px solid #2196F3; border-radius:8px;" onchange="window.showOrdersByDate(this.value)">
                 <div id="date-orders-container" style="min-height:50px;"></div>
             </div>
@@ -3793,22 +3763,81 @@ Please provide helpful, specific advice for Mr Boot shoe laundry business.`;
         };
         
         // ===== SHOW ORDERS BY SPECIFIC DATE =====
+        // Date filter mode (order or delivery)
+        window.dateFilterMode = 'order';
+        
+        // Switch between order date and delivery date filter
+        window.switchDateFilter = (mode) => {
+            window.dateFilterMode = mode;
+            
+            const orderBtn = document.getElementById('btn-order-date');
+            const deliveryBtn = document.getElementById('btn-delivery-date');
+            const desc = document.getElementById('date-filter-desc');
+            const datePicker = document.getElementById('date-picker-orders');
+            
+            if (mode === 'order') {
+                if (orderBtn) {
+                    orderBtn.style.background = '#2196F3';
+                    orderBtn.style.color = 'white';
+                    orderBtn.style.border = 'none';
+                }
+                if (deliveryBtn) {
+                    deliveryBtn.style.background = '#E3F2FD';
+                    deliveryBtn.style.color = '#1976D2';
+                    deliveryBtn.style.border = '1px solid #2196F3';
+                }
+                if (desc) desc.textContent = 'Select any date to see all orders placed on that day';
+            } else {
+                if (deliveryBtn) {
+                    deliveryBtn.style.background = '#2196F3';
+                    deliveryBtn.style.color = 'white';
+                    deliveryBtn.style.border = 'none';
+                }
+                if (orderBtn) {
+                    orderBtn.style.background = '#E3F2FD';
+                    orderBtn.style.color = '#1976D2';
+                    orderBtn.style.border = '1px solid #2196F3';
+                }
+                if (desc) desc.textContent = 'Select any date to see all orders due for delivery on that day';
+            }
+            
+            // Re-run filter if date is selected
+            if (datePicker && datePicker.value) {
+                window.showOrdersByDate(datePicker.value);
+            }
+        };
+        
+        // Show orders by selected date (order date or delivery date)
         window.showOrdersByDate = (dateStr) => {
             if (!dateStr) return;
-            
-            const selectedDate = new Date(dateStr).toLocaleDateString();
-            const dateOrders = window.orders.filter(o => o.date === selectedDate);
             
             const container = document.getElementById('date-orders-container');
             if (!container) return;
             
+            let dateOrders = [];
+            const selectedDate = new Date(dateStr).toLocaleDateString();
+            
+            if (window.dateFilterMode === 'order') {
+                // Filter by order date
+                dateOrders = window.orders.filter(o => o.date === selectedDate);
+            } else {
+                // Filter by delivery date
+                dateOrders = window.orders.filter(o => {
+                    if (!o.deliveryDate) return false;
+                    const deliveryDate = new Date(o.deliveryDate).toLocaleDateString();
+                    return deliveryDate === selectedDate;
+                });
+            }
+            
             if (dateOrders.length === 0) {
-                container.innerHTML = '<p style="color:#999; text-align:center; padding:20px;">📭 No orders found for this date</p>';
+                const filterType = window.dateFilterMode === 'order' ? 'placed' : 'due for delivery';
+                container.innerHTML = `<p style="color:#999; text-align:center; padding:20px;">📭 No orders ${filterType} on this date</p>`;
                 return;
             }
             
+            const filterLabel = window.dateFilterMode === 'order' ? 'placed on' : 'due for delivery on';
             let html = `<div style="background:white; padding:16px; border-radius:8px; margin-top:12px;">`;
-            html += `<h4 style="margin:0 0 16px 0; color:#1976D2;">Found ${dateOrders.length} order(s) on ${selectedDate}</h4>`;
+            html += `<h4 style="margin:0 0 16px 0; color:#1976D2;">Found ${dateOrders.length} order(s) ${filterLabel} ${selectedDate}</h4>`;
             
             dateOrders.forEach(o => {
                 const itemsText = o.items ? o.items.map(i => `${i.brand || ''} ${i.type}`.trim()).join(', ') : '';
@@ -3828,7 +3857,10 @@ Please provide helpful, specific advice for Mr Boot shoe laundry business.`;
                         </div>
                         <div style="color:#666; font-size:13px; margin:8px 0; line-height:1.4;">${itemsText || 'No items listed'}</div>
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-                            <span style="font-size:12px; color:#888;">Due: ${o.deliveryDate || 'Not set'}</span>
+                            <div style="font-size:12px; color:#888;">
+                                <div>📅 Ordered: ${o.date || 'N/A'}</div>
+                                <div>🚚 Delivery: ${o.deliveryDate || 'Not set'}</div>
+                            </div>
                             <span style="font-weight:bold; font-size:18px; color:#4CAF50;">₹${o.financials.total}</span>
                         </div>
                     </div>
